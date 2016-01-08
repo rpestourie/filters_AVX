@@ -9,11 +9,11 @@ from Gaussianfilter2D import Gaussianfilter2D
 # --------------------------------------------
 # initialization - define image
 # --------------------------------------------
-imagename = 'small.png'
+imagename = 'test.png'
 
 # load image (only one color now)
 f = misc.imread(imagename)
-f = f[:,:,0]
+# f = f[:,:,0]
 
 
 
@@ -22,7 +22,7 @@ f = f[:,:,0]
 # --------------------------------------------
 
 # create a instance gaussian filter
-gb = Gaussianfilter2D(sigma = 4.0, truncate = 4.0, mode = 'nearest', cval = 0.0)
+gb = Gaussianfilter2D(sigma = 4.0, truncate = 4.0, mode = 'reflect', cval = 0.0)
 
 
 # --------------------------------------------
@@ -41,6 +41,13 @@ print 'error compared to scipy', gb.error_
 
 print 'run time scipy' , gb.run_time_benchmark_
 print 'run time python' , gb.run_time_
+
+
+
+
+# --------------------------------------------
+# plot the images
+# --------------------------------------------
 fig, ax = plt.subplots(1,2)
 ax[0].imshow(gb.image_);
 ax[0].set_title('Python algorithm');

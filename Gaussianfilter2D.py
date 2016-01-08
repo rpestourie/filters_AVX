@@ -10,6 +10,10 @@ class Gaussianfilter2D():
 	'''
 	2D gaussian filter on Black and White images
 
+	The filter image satisfies the relation
+	$$ C_{i,j} = \sum_{m=0}^{2 l_w} \sum_{n=0}^{2 lw} = K_{m,n} \, I_{i-lw + m, j-l_w+n}$$
+	where C is the new image, K the gaussian kernel and I the original image
+
 	Parameters
 
 	----------
@@ -24,7 +28,7 @@ class Gaussianfilter2D():
 		Default is 4.0
 
 
-	mode : 'periodic'
+	mode : here are the various mode supported by the class
 
     mode       |   Ext   |         Input          |   Ext
     -----------+---------+------------------------+---------
@@ -33,8 +37,15 @@ class Gaussianfilter2D():
     'constant' | 0  0  0 | 1  2  3  4  5  6  7  8 | 0  0  0
     'wrap'     | 6  7  8 | 1  2  3  4  5  6  7  8 | 1  2  3    
 
+
+	Attributes
+
+	----------   
+
+	TO DO: list the class attributes 
+
 	'''
-	def __init__(self, sigma, truncate = 4.0 , mode = 'constant', cval = 0.0):
+	def __init__(self, sigma, truncate = 4.0 , mode = 'reflect', cval = 0.0):
 
 
 		self.sigma = sigma
@@ -139,6 +150,7 @@ class Gaussianfilter2D():
 		# 			image[i, ly - j] = image[i, ly + j]
 		# 			image[i, 2*ly -1 + j] = image[i, 2*ly -1 - j]
 
+		# implement the different type of method to treat the edges
 
 		if self.mode == 'constant':
 
