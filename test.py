@@ -22,7 +22,7 @@ f = f[:,:,0]
 # --------------------------------------------
 
 # create a instance gaussian filter
-gb = Gaussianfilter2D(sigma = 4.0, truncate = 4.0, mode = 'constant', cval = 200.0)
+gb = Gaussianfilter2D(sigma = 4.0, truncate = 4.0, mode = 'nearest', cval = 0.0)
 
 
 # --------------------------------------------

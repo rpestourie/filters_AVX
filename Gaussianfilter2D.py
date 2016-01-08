@@ -28,15 +28,10 @@ class Gaussianfilter2D():
 
     mode       |   Ext   |         Input          |   Ext
     -----------+---------+------------------------+---------
-    'mirror'   | 4  3  2 | 1  2  3  4  5  6  7  8 | 7  6  5
     'reflect'  | 3  2  1 | 1  2  3  4  5  6  7  8 | 8  7  6	
     'nearest'  | 1  1  1 | 1  2  3  4  5  6  7  8 | 8  8  8
     'constant' | 0  0  0 | 1  2  3  4  5  6  7  8 | 0  0  0
     'wrap'     | 6  7  8 | 1  2  3  4  5  6  7  8 | 1  2  3    
-
-	THIS IS SOMETHING TO DO
-
-
 
 	'''
 	def __init__(self, sigma, truncate = 4.0 , mode = 'constant', cval = 0.0):
@@ -107,54 +102,70 @@ class Gaussianfilter2D():
 		lx, ly = f.shape
 		self._kernel = self.kernel_
 
-		if self.mode == 'periodic':
+		# if self.mode == 'periodic':
 
 
-			# first step is to reproduce the periodic boundary conditions
-			# add halo (periodic boundary condition, 
-			# we could do something better but we don't have time to mess 
-			#  around with indexes...)
+		# 	# first step is to reproduce the periodic boundary conditions
+		# 	# add halo (periodic boundary condition, 
+		# 	# we could do something better but we don't have time to mess 
+		# 	#  around with indexes...)
 
-			image = np.zeros((3*lx,3*ly))
-			for i in range(3):
-			    for j in range(3):
-			            image[i*lx:(i+1)*lx, j*ly:(j+1)*ly] = f
-
-
-			# convolution of the image with our gaussian filter
-
-			for i in range(lx,2*lx):
-			    for j in range(ly,2*ly):
-			        local_input = image[i-self.lw:i+self.lw+1, j-self.lw:j+self.lw+1]
-			        self.image_[i-lx,j-ly]= np.sum(local_input*self._kernel)
-
-		elif self.mode == 'mirror':
-
-			image = np.zeros((3*lx,3*ly))
-			# center is the image
-			image[lx: 2*lx , ly : 2*ly ] = f
-			# take care of the left and right sides
-			for j in range(ly, 2*ly):
-				for i in range(1,self.lw + 1):
-					image[ lx -i, j] = image[ lx + i, j]
-					image[2*lx -1 + i , j] = image[ 2*lx  -1 -i , j]
-			# take care of the top and bottom
-			for i in range(lx, 2*lx):
-				for j in range(1, self.lw + 1 ):
-					image[i, ly - j] = image[i, ly + j]
-					image[i, 2*ly -1 + j] = image[i, 2*ly -1 - j]
+		# 	image = np.zeros((3*lx,3*ly))
+		# 	for i in range(3):
+		# 	    for j in range(3):
+		# 	            image[i*lx:(i+1)*lx, j*ly:(j+1)*ly] = f
 
 
-		elif self.mode == 'constant':
+		# 	# convolution of the image with our gaussian filter
+
+		# 	for i in range(lx,2*lx):
+		# 	    for j in range(ly,2*ly):
+		# 	        local_input = image[i-self.lw:i+self.lw+1, j-self.lw:j+self.lw+1]
+		# 	        self.image_[i-lx,j-ly]= np.sum(local_input*self._kernel)
+
+		# elif self.mode == 'mirror':
+
+		# 	image = np.zeros((3*lx,3*ly))
+		# 	# center is the image
+		# 	image[lx: 2*lx , ly : 2*ly ] = f
+		# 	# take care of the left and right sides
+		# 	for j in range(ly, 2*ly):
+		# 		for i in range(1,self.lw + 1):
+		# 			image[ lx -i, j] = image[ lx + i, j]
+		# 			image[2*lx -1 + i , j] = image[ 2*lx  -1 -i , j]
+		# 	# take care of the top and bottom
+		# 	for i in range(lx, 2*lx):
+		# 		for j in range(1, self.lw + 1 ):
+		# 			image[i, ly - j] = image[i, ly + j]
+		# 			image[i, 2*ly -1 + j] = image[i, 2*ly -1 - j]
+
+
+		if self.mode == 'constant':
 
 			# padding using the scipy library
-			image = np.lib.pad(f , self.lw, 'constant', constant_values = self.cval)
+			image = np.lib.pad(f , self.lw, 'constant', constant_values = self.cval)	
 
-			# convolution with the gaussian kernel for filtering
-			for i in range(0 , lx ):
-				for j in range(0 , ly ):
-					local_input = image[i : i + 2*self.lw + 1, j: j + 2*self.lw + 1]
-					self.image_[i , j]= np.sum(local_input*self._kernel)					
+		elif self.mode == 'reflect':
+
+			# padding using the scipy library
+			image = np.lib.pad(f , self.lw, 'reflect')
+
+
+		elif self.mode == 'wrap':
+
+			# padding using the scipy library
+			image = np.lib.pad(f , self.lw, 'wrap')
+
+		elif self.mode == 'nearest':	
+
+			# padding using the scipy library
+			image = np.lib.pad(f , self.lw, 'edge')
+
+		# convolution with the gaussian kernel for filtering
+		for i in range(0 , lx ):
+			for j in range(0 , ly ):
+				local_input = image[i : i + 2*self.lw + 1, j: j + 2*self.lw + 1]
+				self.image_[i , j]= np.sum(local_input*self._kernel)										
 
 		
 
