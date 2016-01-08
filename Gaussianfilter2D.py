@@ -85,9 +85,10 @@ class Gaussianfilter2D():
 		            self._kernel[i+self.lw,-j+self.lw] = np.linalg.norm([i,j])**2
 		        
 		# compute the gaussian kernel
-		self._kernel *= -.5/self.sigma
+		self._kernel *= -.5/self.sigma**2
 		self._kernel = np.exp(self._kernel)
-		self._kernel /= np.sum(self._kernel)
+		self._kernel /= 2*np.pi * self.sigma**2
+		# self._kernel /= np.sum(self._kernel)
 
 		return self._kernel
 
@@ -106,21 +107,21 @@ class Gaussianfilter2D():
 		lx, ly = f.shape
 		self._kernel = self.kernel_
 
-
-		# first step is to reproduce the periodic boundary conditions
-		# add halo (periodic boundary condition, 
-		# we could do something better but we don't have time to mess 
-		#  around with indexes...)
 		if self.mode == 'periodic':
+
+
+			# first step is to reproduce the periodic boundary conditions
+			# add halo (periodic boundary condition, 
+			# we could do something better but we don't have time to mess 
+			#  around with indexes...)
 
 			image = np.zeros((3*lx,3*ly))
 			for i in range(3):
 			    for j in range(3):
 			            image[i*lx:(i+1)*lx, j*ly:(j+1)*ly] = f
 
-			
-			# convolution of the image with our gaussian filter
 
+			# convolution of the image with our gaussian filter
 
 			for i in range(lx,2*lx):
 			    for j in range(ly,2*ly):
@@ -145,9 +146,15 @@ class Gaussianfilter2D():
 
 
 		elif self.mode == 'constant':
+
+			# padding using the scipy library
 			image = np.lib.pad(f , self.lw, 'constant', constant_values = self.cval)
-			plt.imshow(image)
-			plt.show()
+
+			# convolution with the gaussian kernel for filtering
+			for i in range(0 , lx ):
+				for j in range(0 , ly ):
+					local_input = image[i : i + 2*self.lw + 1, j: j + 2*self.lw + 1]
+					self.image_[i , j]= np.sum(local_input*self._kernel)					
 
 		
 

@@ -41,3 +41,9 @@ print 'error compared to scipy', gb.error_
 
 print 'run time scipy' , gb.run_time_benchmark_
 print 'run time python' , gb.run_time_
+fig, ax = plt.subplots(1,2)
+ax[0].imshow(gb.image_);
+ax[0].set_title('Python algorithm');
+ax[1].imshow(gb.image_benchmark_);
+ax[1].set_title('Scipy library');
+plt.show()
