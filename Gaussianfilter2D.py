@@ -86,8 +86,7 @@ class Gaussianfilter2D():
 		self.image_ = gaussian_filter(f, order)
 
 		return self.image_
-		
-	
+			
 
 	def filter_python(self,f):
 		# first step is to reproduce the periodic boundary conditions
