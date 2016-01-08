@@ -26,16 +26,26 @@ class Gaussianfilter2D():
 
 	mode : 'periodic'
 
+    mode       |   Ext   |         Input          |   Ext
+    -----------+---------+------------------------+---------
+    'mirror'   | 4  3  2 | 1  2  3  4  5  6  7  8 | 7  6  5
+    'reflect'  | 3  2  1 | 1  2  3  4  5  6  7  8 | 8  7  6	
+    'nearest'  | 1  1  1 | 1  2  3  4  5  6  7  8 | 8  8  8
+    'constant' | 0  0  0 | 1  2  3  4  5  6  7  8 | 0  0  0
+    'wrap'     | 6  7  8 | 1  2  3  4  5  6  7  8 | 1  2  3    
+
 	THIS IS SOMETHING TO DO
 
 
 
 	'''
-	def __init__(self, sigma, truncate = 4.0 ):
+	def __init__(self, sigma, truncate = 4.0 , mode = 'constant', cval = 0.0):
 
 
 		self.sigma = sigma
 		self.truncate = truncate
+		self.mode = mode
+		self.cval = cval
 
 
 		# lw is the number of adjacent pixels to consider in 1D
@@ -81,29 +91,75 @@ class Gaussianfilter2D():
 
 		return self._kernel
 
-	def filter_scipy(self, f , order = 2):
+	def filter_scipy(self, f ):
+		start = time.time()
+		self.image_benchmark_ = gaussian_filter(f,self.sigma , mode = self.mode, cval = self.cval )
+		self.run_time_benchmark_ = time.time() - start
+		return self.image_benchmark_, self.run_time_benchmark_
 
-		self.image_ = gaussian_filter(f, order)
-
-		return self.image_
-			
 
 	def filter_python(self,f):
+
+
+		start = time.time()
+		self.image_ = f * 0.0
+		lx, ly = f.shape
+		self._kernel = self.kernel_
+
+
 		# first step is to reproduce the periodic boundary conditions
 		# add halo (periodic boundary condition, 
 		# we could do something better but we don't have time to mess 
 		#  around with indexes...)
-		input = np.zeros((3*lx,3*ly))
-		for i in range(3):
-		    for j in range(3):
-		            input[i*lx:(i+1)*lx, j*ly:(j+1)*ly] = f
+		if self.mode == 'periodic':
+
+			image = np.zeros((3*lx,3*ly))
+			for i in range(3):
+			    for j in range(3):
+			            image[i*lx:(i+1)*lx, j*ly:(j+1)*ly] = f
+
+			
+			# convolution of the image with our gaussian filter
 
 
-		# convolution of the image with our gaussian filter
-		for i in range(lx,2*lx):
-		    for j in range(ly,2*ly):
-		        local_input = input[i-lw:i+lw+1, j-lw:j+lw+1]
-		        output_ini[i-lx,j-ly]= np.sum(local_input*gaussianfilter)
+			for i in range(lx,2*lx):
+			    for j in range(ly,2*ly):
+			        local_input = image[i-self.lw:i+self.lw+1, j-self.lw:j+self.lw+1]
+			        self.image_[i-lx,j-ly]= np.sum(local_input*self._kernel)
+
+		elif self.mode == 'mirror':
+
+			image = np.zeros((3*lx,3*ly))
+			# center is the image
+			image[lx: 2*lx , ly : 2*ly ] = f
+			# take care of the left and right sides
+			for j in range(ly, 2*ly):
+				for i in range(1,self.lw + 1):
+					image[ lx -i, j] = image[ lx + i, j]
+					image[2*lx -1 + i , j] = image[ 2*lx  -1 -i , j]
+			# take care of the top and bottom
+			for i in range(lx, 2*lx):
+				for j in range(1, self.lw + 1 ):
+					image[i, ly - j] = image[i, ly + j]
+					image[i, 2*ly -1 + j] = image[i, 2*ly -1 - j]
+
+
+		elif self.mode == 'constant':
+			image = np.lib.pad(f , self.lw, 'constant', constant_values = self.cval)
+			plt.imshow(image)
+			plt.show()
+
+		
+
+		self.run_time_ = time.time() - start
+
+		# run the filter with scipy to get error and run time difference
+		self.filter_scipy(f)
+		self.error_ = np.linalg.norm(self.image_benchmark_-self.image_)
+
+		return self.image_, self.run_time_, self.error_
+
+
 
 
 
