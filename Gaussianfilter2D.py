@@ -42,7 +42,34 @@ class Gaussianfilter2D():
 
 	----------   
 
-	TO DO: list the class attributes 
+	kernel_ : 2d-array
+
+		this is the 2D gaussian filter kernel used in the convolution
+		with the provided image
+
+	image_benchmark_: 2d-array
+
+		this is the image filtered with the 2D gaussian filter provided
+		by the scipy library
+
+	run_time_benchmark_: float
+
+		this is the run time of the 2D gaussian filter provied by the
+		scipy library
+
+	image_: 2d-array
+
+		this is the image filtered by the 2D gaussian filter implemented in 
+		python
+
+	run_time_: float
+
+		this is the run time of the 2D gaussian filter implemented in python
+
+	error_ : float
+
+		this is the norm-2 error of the python function compared with the scipy
+		function
 
 	'''
 	def __init__(self, sigma, truncate = 4.0 , mode = 'reflect', cval = 0.0):
@@ -94,7 +121,7 @@ class Gaussianfilter2D():
 		self._kernel *= -.5/self.sigma**2
 		self._kernel = np.exp(self._kernel)
 		self._kernel /= 2*np.pi * self.sigma**2
-		# self._kernel /= np.sum(self._kernel)
+		self._kernel /= np.sum(self._kernel)
 
 		return self._kernel
 
@@ -111,6 +138,7 @@ class Gaussianfilter2D():
 		start = time.time()
 		self.image_ = f * 0.0
 		lx, ly = f.shape
+		# create the gaussian filter kernel
 		self._kernel = self.kernel_
 
 		# if self.mode == 'periodic':
@@ -187,7 +215,7 @@ class Gaussianfilter2D():
 		self.filter_scipy(f)
 		self.error_ = np.linalg.norm(self.image_benchmark_-self.image_)
 
-		return self.image_, self.run_time_, self.error_
+		return self
 
 
 
