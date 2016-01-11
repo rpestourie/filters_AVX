@@ -131,6 +131,16 @@ class Gaussianfilter2D():
 		self.run_time_benchmark_ = time.time() - start
 		return self.image_benchmark_, self.run_time_benchmark_
 
+	def _python_convolution(self, lx, ly, image):
+
+		# convolution with the gaussian kernel for filtering
+		for i in range(0 , lx ):
+			for j in range(0 , ly ):
+				local_input = image[i : i + 2*self.lw + 1, j: j + 2*self.lw + 1]
+				self.image_[i , j]= np.sum(local_input*self._kernel)
+
+		return self.image_
+
 
 	def filter_python(self,f):
 
@@ -140,43 +150,6 @@ class Gaussianfilter2D():
 		lx, ly = f.shape
 		# create the gaussian filter kernel
 		self._kernel = self.kernel_
-
-		# if self.mode == 'periodic':
-
-
-		# 	# first step is to reproduce the periodic boundary conditions
-		# 	# add halo (periodic boundary condition, 
-		# 	# we could do something better but we don't have time to mess 
-		# 	#  around with indexes...)
-
-		# 	image = np.zeros((3*lx,3*ly))
-		# 	for i in range(3):
-		# 	    for j in range(3):
-		# 	            image[i*lx:(i+1)*lx, j*ly:(j+1)*ly] = f
-
-
-		# 	# convolution of the image with our gaussian filter
-
-		# 	for i in range(lx,2*lx):
-		# 	    for j in range(ly,2*ly):
-		# 	        local_input = image[i-self.lw:i+self.lw+1, j-self.lw:j+self.lw+1]
-		# 	        self.image_[i-lx,j-ly]= np.sum(local_input*self._kernel)
-
-		# elif self.mode == 'mirror':
-
-		# 	image = np.zeros((3*lx,3*ly))
-		# 	# center is the image
-		# 	image[lx: 2*lx , ly : 2*ly ] = f
-		# 	# take care of the left and right sides
-		# 	for j in range(ly, 2*ly):
-		# 		for i in range(1,self.lw + 1):
-		# 			image[ lx -i, j] = image[ lx + i, j]
-		# 			image[2*lx -1 + i , j] = image[ 2*lx  -1 -i , j]
-		# 	# take care of the top and bottom
-		# 	for i in range(lx, 2*lx):
-		# 		for j in range(1, self.lw + 1 ):
-		# 			image[i, ly - j] = image[i, ly + j]
-		# 			image[i, 2*ly -1 + j] = image[i, 2*ly -1 - j]
 
 		# implement the different type of method to treat the edges
 
@@ -201,13 +174,11 @@ class Gaussianfilter2D():
 			# padding using the scipy library
 			image = np.lib.pad(f , self.lw, 'edge')
 
-		# convolution with the gaussian kernel for filtering
-		for i in range(0 , lx ):
-			for j in range(0 , ly ):
-				local_input = image[i : i + 2*self.lw + 1, j: j + 2*self.lw + 1]
-				self.image_[i , j]= np.sum(local_input*self._kernel)										
 
-		
+
+		# convolution with the gaussian kernel for filtering
+		self.image_= self._python_convolution(lx,ly,image)
+
 
 		self.run_time_ = time.time() - start
 
@@ -217,7 +188,10 @@ class Gaussianfilter2D():
 
 		return self
 
+	def filter_AVX(self,f):
+		# now compute the kernel at each pixel
 
+		return 
 
 
 
