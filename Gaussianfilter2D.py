@@ -141,6 +141,32 @@ class Gaussianfilter2D():
 
 		return self.image_
 
+	def _other(self, local_input):
+
+		toplot = local_input*0.0
+		sumg = 0
+		for k in range(self.pan):
+			   gaussianc = np.exp(-0.5 / self.sigma**2
+			    			*np.linalg.norm([k-self.lw,0])**2)
+			   sumg += gaussianc
+			   toplot[k,self.lw] = local_input[k,self.lw] * gaussianc
+			   for l in range(1, self.lw+1, 8):
+			       toplot[k,self.lw+l:self.lw+l+8] = [local_input[k,self.lw+_]*np.exp(-.5/self.sigma*np.linalg.norm([k-self.lw,_])**2) for _ in range(l,l+8)]
+			       gaussianl = [np.exp(-.5/self.sigma*np.linalg.norm([k-self.lw,_])**2) for _ in range(l,l+8)]
+			       sumg += np.sum(gaussianl)
+			   for l in range(0, self.lw, 8):
+			       toplot[k,l:l+8] = [local_input[k,_]*np.exp(-.5/self.sigma*np.linalg.norm([k-self.lw,_-self.lw])**2) for _ in range(l,l+8)]
+			       gaussianr = [np.exp(-.5/self.sigma*np.linalg.norm([k-self.lw,_-self.lw])**2) for _ in range(l,l+8)]
+			       sumg += np.sum(gaussianr)
+		toplot /= sumg
+		self.image_ = toplot
+
+		# run the filter with scipy to get error and run time difference
+		self.filter_scipy(local_input)
+		self.error_ = np.linalg.norm(self.image_benchmark_-self.image_)
+
+		return self.image_
+
 
 	def filter_python(self,f):
 
@@ -188,10 +214,6 @@ class Gaussianfilter2D():
 
 		return self
 
-	def filter_AVX(self,f):
-		# now compute the kernel at each pixel
-
-		return 
 
 
 
