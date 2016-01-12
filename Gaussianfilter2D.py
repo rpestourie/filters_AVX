@@ -146,18 +146,21 @@ class Gaussianfilter2D():
 		toplot = local_input*0.0
 		sumg = 0
 		for k in range(self.pan):
+				# middle column
 			   gaussianc = np.exp(-0.5 / self.sigma**2
 			    			*np.linalg.norm([k-self.lw,0])**2)
+			   # sum
 			   sumg += gaussianc
 			   toplot[k,self.lw] = local_input[k,self.lw] * gaussianc
+			   # columns on the right side
 			   for l in range(1, self.lw+1, 8):
 			       toplot[k,self.lw+l:self.lw+l+8] = [local_input[k,self.lw+_]*np.exp(-.5/self.sigma*np.linalg.norm([k-self.lw,_])**2) for _ in range(l,l+8)]
-			       gaussianl = [np.exp(-.5/self.sigma*np.linalg.norm([k-self.lw,_])**2) for _ in range(l,l+8)]
-			       sumg += np.sum(gaussianl)
+			       gaussianr = [np.exp(-.5/self.sigma*np.linalg.norm([k-self.lw,_])**2) for _ in range(l,l+8)]
+			       sumg += np.sum(gaussianr)
 			   for l in range(0, self.lw, 8):
 			       toplot[k,l:l+8] = [local_input[k,_]*np.exp(-.5/self.sigma*np.linalg.norm([k-self.lw,_-self.lw])**2) for _ in range(l,l+8)]
-			       gaussianr = [np.exp(-.5/self.sigma*np.linalg.norm([k-self.lw,_-self.lw])**2) for _ in range(l,l+8)]
-			       sumg += np.sum(gaussianr)
+			       gaussianl = [np.exp(-.5/self.sigma*np.linalg.norm([k-self.lw,_-self.lw])**2) for _ in range(l,l+8)]
+			       sumg += np.sum(gaussianl)
 		toplot /= sumg
 		self.image_ = toplot
 
