@@ -2,14 +2,6 @@ import numpy as np
 cimport numpy as np
 cimport cython
 import numpy
-# cimport AVX
-from cython.parallel import prange
-
-
-import numpy as np
-cimport numpy as np
-cimport cython
-import numpy
 from libc.math cimport exp
 cimport AVX
 from cython.parallel import prange
