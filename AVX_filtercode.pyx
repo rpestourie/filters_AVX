@@ -6,6 +6,7 @@ from libc.math cimport exp
 cimport AVX
 from cython.parallel import prange
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 
