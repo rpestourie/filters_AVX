@@ -45,3 +45,6 @@ cdef extern from "AVX.h" nogil:
 
     #     This copies the contents of the float8 into a memory location
     void to_mem(float8, float *)
+
+    float8 exp(float8)
+

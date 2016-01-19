@@ -2,7 +2,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 import numpy
-# cimport AVX
+cimport AVX
 from cython.parallel import prange
 
 
@@ -50,7 +50,7 @@ cpdef cython_gaussian_AVX(np.float32_t [:, :] input,
 				AVX_y =  AVX.float_to_float8(<float> (k-lw))
 				coef = <float> ((k-lw)*(k-lw))
 				coef = coef * (-.5/sigma)
-				# coef = exp(coef)
+				coef = exp(coef)
 				l_output += local_input[k,lw] * coef
 				sumg += coef
 				for l in range(1, lw+1, 8):
@@ -59,7 +59,7 @@ cpdef cython_gaussian_AVX(np.float32_t [:, :] input,
 					AVX_x = AVX.make_float8(<float> l, <float> l+1, <float> l+2, <float> l+3, <float> l+4, <float> l+5, <float> l+6, <float> l+7)
 					AVX_coef = AVX.add(AVX.mul(AVX_x, AVX_x), AVX.mul(AVX_y, AVX_y))
 					AVX_coef = AVX.mul(AVX_coef, AVX_gauss_coef)
-					# AVX_coef = AVX.exp(AVX_coef)
+					AVX_coef = AVX.exp(AVX_coef)
 					AVX_ouput = AVX.mul(AVX_local_input, AVX_coef)
 					for _ in range(8):
 						output_array[_] = <np.float32_t> (<np.float32_t *> &AVX_ouput)[_]
@@ -73,7 +73,7 @@ cpdef cython_gaussian_AVX(np.float32_t [:, :] input,
 					<float> l+6-lw,<float> l+7-lw)
 					AVX_coef = AVX.add(AVX.mul(AVX_x, AVX_x), AVX.mul(AVX_y, AVX_y))
 					AVX_coef = AVX.mul(AVX_coef, AVX_gauss_coef)
-					# AVX_coef = AVX.exp(AVX_coef)
+					AVX_coef = AVX.exp(AVX_coef)
 					AVX_ouput = AVX.mul(AVX_local_input, AVX_coef)
 					for _ in range(8):
 						output_array[_] = <np.float32_t> (<np.float32_t *> &AVX_ouput)[_]
@@ -116,7 +116,7 @@ cpdef cython_gaussian_AVX_pr(np.float32_t [:, :] input,
 				AVX_y =  AVX.float_to_float8(<float> (k-lw))
 				coef = <float> ((k-lw)*(k-lw))
 				coef = coef * (-.5/sigma)
-				# coef = exp(coef)
+				coef = exp(coef)
 				val += local_input[k,lw] * coef
 				sumg += coef
 				# loop over columns
@@ -129,7 +129,7 @@ cpdef cython_gaussian_AVX_pr(np.float32_t [:, :] input,
 					# avx for coefficients
 					AVX_coef = AVX.add(AVX.mul(AVX_x, AVX_x), AVX.mul(AVX_y, AVX_y))
 					AVX_coef = AVX.mul(AVX_coef, AVX_gauss_coef)
-					# AVX_coef = AVX.exp(AVX_coef)
+					AVX_coef = AVX.exp(AVX_coef)
 					AVX_ouput = AVX.mul(AVX_local_input, AVX_coef)
 					for _ in range(8):
 						output_array[_] = <np.float32_t> (<np.float32_t *> &AVX_ouput)[_]
@@ -144,7 +144,7 @@ cpdef cython_gaussian_AVX_pr(np.float32_t [:, :] input,
 					<float> l+6-lw,<float> l+7-lw)
 					AVX_coef = AVX.add(AVX.mul(AVX_x, AVX_x), AVX.mul(AVX_y, AVX_y))
 					AVX_coef = AVX.mul(AVX_coef, AVX_gauss_coef)
-					# AVX_coef = AVX.exp(AVX_coef)
+					AVX_coef = AVX.exp(AVX_coef)
 					AVX_ouput = AVX.mul(AVX_local_input, AVX_coef)
 					for _ in range(8):
 						output_array[_] = <np.float32_t> (<np.float32_t *> &AVX_ouput)[_]
@@ -191,7 +191,7 @@ cpdef cython_bilateral_AVX_pr(np.float32_t [:, :] input,
 				AVX_I =  AVX.float_to_float8(<float> (k-lw))
 				coef = <float> ((k-lw)*(k-lw)) + ((local_input[k,lw]-I)*(local_input[k,lw]-I))
 				coef = coef * (-.5/sigma)
-				# coef = exp(coef)
+				coef = exp(coef)
 				val += local_input[k,lw] * coef
 				sumg += coef
 				# loop over columns
@@ -206,7 +206,7 @@ cpdef cython_bilateral_AVX_pr(np.float32_t [:, :] input,
 					AVX_coef = AVX.fmadd(AVX_coef, AVX_coef, AVX.mul(AVX_x, AVX_x))
 					AVX_coef = AVX.add(AVX.mul(AVX_y, AVX_y), AVX_coef)
 					AVX_coef = AVX.mul(AVX_coef, AVX_gauss_coef)
-					# AVX_coef = AVX.exp(AVX_coef)
+					AVX_coef = AVX.exp(AVX_coef)
 					AVX_ouput = AVX.mul(AVX_local_input, AVX_coef)
 					for _ in range(8):
 						output_array[_] = <np.float32_t> (<np.float32_t *> &AVX_ouput)[_]
@@ -222,7 +222,7 @@ cpdef cython_bilateral_AVX_pr(np.float32_t [:, :] input,
 					AVX_coef = AVX.fmadd(AVX_coef, AVX_coef, AVX.mul(AVX_x, AVX_x))
 					AVX_coef = AVX.add(AVX.mul(AVX_y, AVX_y), AVX_coef)
 					AVX_coef = AVX.mul(AVX_coef, AVX_gauss_coef)
-					# AVX_coef = AVX.exp(AVX_coef)
+					AVX_coef = AVX.exp(AVX_coef)
 					AVX_ouput = AVX.mul(AVX_local_input, AVX_coef)
 					for _ in range(8):
 						output_array[_] = <np.float32_t> (<np.float32_t *> &AVX_ouput)[_]
@@ -231,3 +231,5 @@ cpdef cython_bilateral_AVX_pr(np.float32_t [:, :] input,
 						sumg += coef_array[_]
 			#update output
 			output[i-lx,j-ly] = val/sumg
+
+

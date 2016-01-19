@@ -155,4 +155,7 @@ start = time.time()
 cython_bilateral_pr(input, output5, lw, pan, lx, ly, sigma,2)
 print "AVX bilateral th 2", time.time() - start
 plt.imshow(output5)
-plt.show()
+# plt.show()
+print output5.shape
+print output.shape
+print 'differences', np.linalg.norm(output5 - output)

@@ -13,6 +13,8 @@
 #  define _mm256_fmsub_ps(a, b, c) _mm256_sub_ps(_mm256_mul_ps((a), (b)), (c))
 #endif
 
+//#include <avx_mathfun.h>
+
 //Float
 typedef __m256 float8;
 
@@ -37,3 +39,6 @@ typedef __m256 float8;
 #define signs(a)               (_mm256_movemask_ps(a) & 255)
 
 #define to_mem(reg, mem)       _mm256_storeu_ps(mem, reg)
+
+// #define exp(x)                  exp256_ps(x)
+
