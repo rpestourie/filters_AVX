@@ -18,6 +18,7 @@ from gaussian_filter import cython_gaussian, cython_bilateral
 from gaussian_filter import cython_gaussian_pr, cython_bilateral_pr
 from gaussian_filter import cython_gaussian_pr2
 from gaussian_filter import cython_gaussian_pr3
+from AVX_filtercode import cython_bilateral_AVX_pr
 
 from scipy import misc
 import numpy as np
@@ -27,7 +28,7 @@ from scipy.ndimage.filters import gaussian_filter1d, gaussian_filter
 
 truncate = 4.
 sigma = 4.
-imagename = 'small.png'
+imagename = 'test.png'
 
 # get ideal side sizes from arguments
 lw = int(truncate*sigma+0.5)
@@ -152,10 +153,10 @@ input = np.array(input, np.float32)
 output = f*0.
 output5 =  np.array(output, np.float32)
 start = time.time()
-cython_bilateral_pr(input, output5, lw, pan, lx, ly, sigma,2)
+cython_bilateral_AVX_pr(input, output5, lw, pan, lx, ly, sigma,2)
 print "AVX bilateral th 2", time.time() - start
 plt.imshow(output5)
 # plt.show()
 print output5.shape
 print output.shape
-print 'differences', np.linalg.norm(output5 - output)
+print 'differences', np.linalg.norm(output5 - input[0:lx, 0:ly])

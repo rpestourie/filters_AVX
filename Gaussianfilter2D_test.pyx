@@ -93,7 +93,7 @@ cpdef _AVX_cython_convolution(int lw,
 
 
 			# output the filtered pixel
-			image_out[i, j] = <np.float32_t>  val
+			image_out[i, j] =  val
 
 	return image_out
 

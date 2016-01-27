@@ -50,7 +50,7 @@ print 'pan', gb.pan
 print 'span', gb.span
 print 'f.shape', f.shape
 
-gb.filter_cython(f)
+gb.filter_python(f)
 
 print 'error compared to scipy', gb.error_
 
