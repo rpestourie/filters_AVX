@@ -15,6 +15,137 @@ cimport numpy as np
 @cython.boundscheck(False)
 @cython.wraparound(False)
 
+
+cpdef _testing (int lw, int lx, int ly, np.float32_t [:,:] image_in, np.float32_t [:,:] image_out,
+				np.float32_t [:,:] kernel ):
+
+	cdef:
+		int i,j, i_local
+		np.float32_t [:,:] local_input
+		np.float32_t [:] output_array_left,output_array_right, \
+							output_array_top, output_array_bot
+		AVX.float8 AVX_coef_left, kernel_AVX_left, local_input_AVX_left, \
+							AVX_coef_right, kernel_AVX_right, local_input_AVX_right,\
+							AVX_coef_top, kernel_AVX_top , local_input_AVX_top, \
+							AVX_coef_bot, kernel_AVX_bot, local_input_AVX_bot
+		float sumg
+
+	for i in range(lx):
+		for j in range(ly):
+			local_input = image_in[i : i + 2*lw + 1, j: j + 2*lw + 1]
+			# summation of the two (2*lw+1 , 2*lw+1) done with AVX
+			for i_local in range(0, local_input.shape[0] + 1):
+				output_array_left = np.zeros(8, dtype= np.float32)	
+				output_array_right = np.zeros(8, dtype= np.float32)	
+				# Summation over the columns now
+
+				# sum the left part
+				# store the 8 adjacent values into one AVX
+				local_input_AVX_left = AVX.make_float8(local_input[i_local, 7],
+												 local_input[i_local, 6],
+												 local_input[i_local, 5],
+												 local_input[i_local, 4],
+												 local_input[i_local, 3],
+												 local_input[i_local, 2],
+												 local_input[i_local, 1],
+												 local_input[i_local, 0])
+				kernel_AVX_left =  AVX.make_float8(kernel[i_local,7],
+										 kernel[i_local,6],
+										 kernel[i_local,5],
+										 kernel[i_local,4],
+										 kernel[i_local,3],
+										 kernel[i_local,2],
+										 kernel[i_local,1],
+										 kernel[i_local,0])
+				AVX_coef_left = AVX.mul(local_input_AVX_left,kernel_AVX_left)
+
+				# sum the right part
+				# store the 8 adjacent values into one AVX
+				local_input_AVX_right = AVX.make_float8(local_input[i_local, 16],
+												 local_input[i_local, 15],
+												 local_input[i_local, 14],
+												 local_input[i_local, 13],
+												 local_input[i_local, 12],
+												 local_input[i_local, 11],
+												 local_input[i_local, 10],
+												 local_input[i_local, 9])
+				kernel_AVX_right =  AVX.make_float8(kernel[i_local,16],
+										 kernel[i_local,15],
+										 kernel[i_local,14],
+										 kernel[i_local,13],
+										 kernel[i_local,12],
+										 kernel[i_local,11],
+										 kernel[i_local,10],
+										 kernel[i_local,9])
+				AVX_coef_right = AVX.mul(local_input_AVX_right,kernel_AVX_right)				
+				for _ in range(8):
+					output_array_left[_] = <np.float32_t> (<np.float32_t *> &AVX_coef_left)[_]
+					output_array_right[_] = <np.float32_t> (<np.float32_t *> &AVX_coef_right)[_]
+					sumg +=   output_array_left[_]	
+					sumg += output_array_right[_]
+
+			# now sum the two columns in the middle
+			output_array_top = np.zeros(8, dtype= np.float32)	
+			output_array_bot = np.zeros(8, dtype= np.float32)	
+			# Summation over the columns now
+
+			# sum the top part
+			# store the 8 adjacent values into one AVX
+			local_input_AVX_top = AVX.make_float8(local_input[ 7, lw/2-1],
+											 local_input[ 6, lw/2-1],
+											 local_input[ 5, lw/2-1],
+											 local_input[ 4, lw/2-1],
+											 local_input[ 3, lw/2-1],
+											 local_input[ 2, lw/2-1],
+											 local_input[ 1, lw/2-1],
+											 local_input[ 0, lw/2-1])
+			kernel_AVX_top =  AVX.make_float8(kernel[7, lw/2 -1],
+									 kernel[6, lw/2 -1],
+									 kernel[5, lw/2 -1],
+									 kernel[4, lw/2 -1],
+									 kernel[3, lw/2 -1],
+									 kernel[2, lw/2 -1],
+									 kernel[1, lw/2 -1],
+									 kernel[0, lw/2 -1])
+			AVX_coef_top = AVX.mul(local_input_AVX_top,kernel_AVX_top)
+
+			# sum the bot part
+			# store the 8 adjacent values into one AVX
+			local_input_AVX_top = AVX.make_float8(local_input[ 16, lw/2-1],
+											 local_input[ 15, lw/2-1],
+											 local_input[ 14, lw/2-1],
+											 local_input[ 13, lw/2-1],
+											 local_input[ 12, lw/2-1],
+											 local_input[ 11, lw/2-1],
+											 local_input[ 10, lw/2-1],
+											 local_input[ 9, lw/2-1])
+			kernel_AVX_top =  AVX.make_float8(kernel[16, lw/2 -1],
+									 kernel[15, lw/2 -1],
+									 kernel[14, lw/2 -1],
+									 kernel[13, lw/2 -1],
+									 kernel[12, lw/2 -1],
+									 kernel[11, lw/2 -1],
+									 kernel[10, lw/2 -1],
+									 kernel[9, lw/2 -1])
+			AVX_coef_top = AVX.mul(local_input_AVX_top,kernel_AVX_top)		
+			for _ in range(	8):
+				output_array_top[_] = <np.float32_t> (<np.float32_t *> &AVX_coef_top)[_]
+				output_array_bot[_] = <np.float32_t> (<np.float32_t *> &AVX_coef_bot)[_]
+				sumg +=   output_array_top[_]	
+				sumg += output_array_bot[_]	
+
+			# now sum the coef in the middle
+			sumg += kernel[lw/2 -1 , lw/2 -1 ]* local_input[lw/2 -1 , lw/2 -1]
+			
+			image_out[i, j] = sumg
+			# image_out[i,j] = np.sum(np.dot( local_input,kernel))
+			# try:
+			# 	assert sumg == np.sum(np.dot( local_input,kernel))
+			# except AssertionError:
+			# 	print i,j
+
+	return 
+
 cpdef _AVX_cython_convolution(int lw,
 							  int lx,
 							  int ly,
@@ -28,7 +159,7 @@ cpdef _AVX_cython_convolution(int lw,
 		np.float32_t [:] output_array_left,output_array_right
 		AVX.float8 local_input_AVX,local_input_AVX_left,local_input_AVX_right,\
 					kernel_AVX_right, kernel_AVX_left
-		float val
+		float sumg
 
 	# can optimize with chunksize too
 	# for i in prange(0,lx , nogil= True, schedule = 'static', num_threads = 2):
@@ -88,14 +219,14 @@ cpdef _AVX_cython_convolution(int lw,
 				for _ in range(8):
 					output_array_left[_] = <np.float32_t> (<np.float32_t *> &AVX_coef_left)[_]
 					# output_array_right[_] = <np.float32_t> (<np.float32_t *> &AVX_coef_right)[_]
-					val += <np.float32_t>  output_array_left[_]
-					# val += output_array_right[_]
+					sumg +=   output_array_left[_]
+					# sumg += output_array_right[_]
 
 
 			# output the filtered pixel
-			image_out[i, j] =  val
+			# image_out[i, j] =   0.0
 
-	return image_out
+	return 
 
 class Gaussianfilter2D():
 	'''
@@ -238,7 +369,9 @@ class Gaussianfilter2D():
 		# initialize for cython
 		image_in = np.array(image, dtype = np.float32)
 		image_out = np.zeros((lx,ly), dtype = np.float32)
-		_AVX_cython_convolution(self.lw, lx, ly, image_in, image_out, self._kernel)
+		kernel = np.array(self._kernel, dtype = np.float32)
+		# _AVX_cython_convolution(self.lw, lx, ly, image_in, image_out, self._kernel)
+		_testing(self.lw, lx, ly, image_in, image_out, kernel)
 
 		self.image_ = image_out
 

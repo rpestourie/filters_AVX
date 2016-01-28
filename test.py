@@ -50,7 +50,7 @@ print 'pan', gb.pan
 print 'span', gb.span
 print 'f.shape', f.shape
 
-gb.filter_python(f)
+gb.filter_cython(f)
 
 print 'error compared to scipy', gb.error_
 
@@ -60,6 +60,10 @@ print 'run time python' , gb.run_time_
 print 'error other compared to scipy', gb.error_
 
 print 'kernel.shape', gb.kernel_.shape
+
+print gb.image_
+
+
 
 # # --------------------------------------------
 # # plot the images
