@@ -29,7 +29,7 @@ cpdef _testing (int lw, int lx, int ly, np.float32_t [:,:] image_in, np.float32_
 				np.float32_t [:,:] kernel ):
 
 	cdef:
-		int i,j, i_local, k
+		int i,j, i_local, k, m_8, n_elem
 		np.float32_t [:,:] local_input
 		np.float32_t [:] output_array_left,output_array_right, \
 							output_array_top, output_array_bot
@@ -37,14 +37,18 @@ cpdef _testing (int lw, int lx, int ly, np.float32_t [:,:] image_in, np.float32_
 							AVX_coef_right, kernel_AVX_right, local_input_AVX_right,\
 							AVX_coef_top, kernel_AVX_top , local_input_AVX_top, \
 							AVX_coef_bot, kernel_AVX_bot, local_input_AVX_bot
-		float sumg
+		float sumg , check_sum_avx, check_sum_manual
+		int j_m
+
+	# n_elem = lw / 8
 
 	for i in range(lx):
 		for j in range(ly):
 			sumg = 0.0
 			local_input = image_in[i : i + 2*lw + 1, j: j + 2*lw + 1]
 			for i_local in range(local_input.shape[0]):
-				# sumg += kernel[i_local,8]*local_input[i_local,8]
+				# for m_8 in range()
+				# left part
 				local_input_AVX_left = AVX.make_float8(local_input[i_local, 7],
 												 local_input[i_local, 6],
 												 local_input[i_local, 5],
@@ -62,7 +66,18 @@ cpdef _testing (int lw, int lx, int ly, np.float32_t [:,:] image_in, np.float32_
 										 kernel[i_local,1],
 										 kernel[i_local,0])
 				AVX_coef_left = AVX.mul(local_input_AVX_left,kernel_AVX_left)
+				# ---------
+				# here i am checking the sum
+				check_sum_avx =0.0
+				check_sum_manual = 0.0
+				for k in range(8):
+					check_sum_avx += <np.float32_t> (<np.float32_t *> &AVX_coef_left)[k]
+				for j_m in range(8):
+					check_sum_manual += local_input[i_local, j_m]*kernel[i_local,j_m]
+				assert check_sum_manual == check_sum_avx
+				# ----------
 
+				# right part
 				local_input_AVX_right = AVX.make_float8(local_input[i_local, 16],
 												 local_input[i_local, 15],
 												 local_input[i_local, 14],
@@ -79,10 +94,26 @@ cpdef _testing (int lw, int lx, int ly, np.float32_t [:,:] image_in, np.float32_
 										 kernel[i_local,11],
 										 kernel[i_local,10],
 										 kernel[i_local,9])
-				AVX_coef_right = AVX.mul(local_input_AVX_right,kernel_AVX_right)				
+				AVX_coef_right = AVX.mul(local_input_AVX_right,kernel_AVX_right)	
+				# ---------
+				# here i am checking the sum
+				check_sum_manual = 0.0
+				check_sum_avx =0.0
+				for k in range(8):
+					check_sum_avx += <np.float32_t> (<np.float32_t *> &AVX_coef_right)[k]
+				for j_m in range(9,17):
+					check_sum_manual += local_input[i_local, j_m]*kernel[i_local,j_m]
+				assert check_sum_manual == check_sum_avx
+				# print 'local_input.shape[1]',local_input.shape[1]
+				# print 'local_input.shape[0]', local_input.shape[0]
+				# ----------
+
+
 				for k in range(8):
 					sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_left)[k]
 					sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_right)[k]
+
+
 			# top and bottom
 			local_input_AVX_top = AVX.make_float8(local_input[ 7, 8],
 											 local_input[ 6, 8],
@@ -101,6 +132,18 @@ cpdef _testing (int lw, int lx, int ly, np.float32_t [:,:] image_in, np.float32_
 									 kernel[1, 8],
 									 kernel[0, 8])
 			AVX_coef_top = AVX.mul(local_input_AVX_top,kernel_AVX_top)
+
+			# ---------
+			# here i am checking the sum
+			check_sum_manual = 0.0
+			check_sum_avx =0.0
+			for k in range(8):
+				check_sum_avx += <np.float32_t> (<np.float32_t *> &AVX_coef_top)[k]
+			for j_m in range(0,8):
+				check_sum_manual += local_input[j_m, 8]*kernel[j_m,8]
+			assert check_sum_manual == check_sum_avx
+			# ----------			
+
 			local_input_AVX_bot = AVX.make_float8(local_input[ 16, 8],
 											 local_input[ 15, 8],
 											 local_input[ 14, 8],
@@ -118,6 +161,17 @@ cpdef _testing (int lw, int lx, int ly, np.float32_t [:,:] image_in, np.float32_
 									 kernel[10, 8],
 									 kernel[9, 8])
 			AVX_coef_bot = AVX.mul(local_input_AVX_bot,kernel_AVX_bot)
+			# ---------
+			# here i am checking the sum
+			check_sum_manual = 0.0
+			check_sum_avx =0.0
+			for k in range(8):
+				check_sum_avx += <np.float32_t> (<np.float32_t *> &AVX_coef_bot)[k]
+			for j_m in range(9,17):
+				check_sum_manual += local_input[j_m, 8]*kernel[j_m,8]
+			assert check_sum_manual == check_sum_avx
+			# ----------
+
 			for k in range(8):
 				sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_top)[k]
 				sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_bot)[k]

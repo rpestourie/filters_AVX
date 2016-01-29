@@ -37,7 +37,7 @@ f = f[:,:,0]
 # --------------------------------------------
 
 # create a instance gaussian filter
-gb = Gaussianfilter2D(sigma = 4.0, truncate = 4.0, mode = 'reflect', cval = 0.0)
+gb = Gaussianfilter2D(sigma = 4.0, truncate = 2.0, mode = 'reflect', cval = 0.0)
 
 
 # --------------------------------------------
@@ -61,7 +61,6 @@ print 'error other compared to scipy', gb.error_
 
 print 'kernel.shape', gb.kernel_.shape
 
-print gb.image_
 
 
 
