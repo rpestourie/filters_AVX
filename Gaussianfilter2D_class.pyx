@@ -30,177 +30,108 @@ cpdef _testing (int lw, int lx, int ly, np.float32_t [:,:] image_in, np.float32_
 							AVX_coef_right, kernel_AVX_right, local_input_AVX_right,\
 							AVX_coef_top, kernel_AVX_top , local_input_AVX_top, \
 							AVX_coef_bot, kernel_AVX_bot, local_input_AVX_bot
-		float sumg , check_sum_avx, check_sum_manual, test
+		float sumg , check_sum_avx, check_sum_manual
 		int j_m
 
-	n_elem = lw / 8
-	print 'n_elem', n_elem
-
+	# n_elem = lw / 8
 
 	for i in range(lx):
 		for j in range(ly):
 			sumg = 0.0
-			test = 0.0
 			local_input = image_in[i : i + 2*lw + 1, j: j + 2*lw + 1]
 			for i_local in range(local_input.shape[0]):
-				# for m_8 in range(1):
+				# for m_8 in range()
 				# left part
-				local_input_AVX_left = AVX.make_float8(local_input[i_local,m_8*8+ 7],
-												 local_input[i_local,m_8*8 + 6],
-												 local_input[i_local,m_8*8 + 5],
-												 local_input[i_local,m_8*8 + 4],
-												 local_input[i_local,m_8*8 + 3],
-												 local_input[i_local,m_8*8 + 2],
-												 local_input[i_local,m_8*8 + 1],
-												 local_input[i_local,m_8*8 + 0])
-				kernel_AVX_left =  AVX.make_float8(kernel[i_local,m_8*8+7],
-										 kernel[i_local,m_8*8 +6],
-										 kernel[i_local,m_8*8 +5],
-										 kernel[i_local,m_8*8 +4],
-										 kernel[i_local,m_8*8 +3],
-										 kernel[i_local,m_8*8 +2],
-										 kernel[i_local,m_8*8 +1],
-										 kernel[i_local,m_8*8 +0])
+				local_input_AVX_left = AVX.make_float8(local_input[i_local, 7],
+												 local_input[i_local, 6],
+												 local_input[i_local, 5],
+												 local_input[i_local, 4],
+												 local_input[i_local, 3],
+												 local_input[i_local, 2],
+												 local_input[i_local, 1],
+												 local_input[i_local, 0])
+				kernel_AVX_left =  AVX.make_float8(kernel[i_local,7],
+										 kernel[i_local,6],
+										 kernel[i_local,5],
+										 kernel[i_local,4],
+										 kernel[i_local,3],
+										 kernel[i_local,2],
+										 kernel[i_local,1],
+										 kernel[i_local,0])
 				AVX_coef_left = AVX.mul(local_input_AVX_left,kernel_AVX_left)
 
-					# right part
-					# local_input_AVX_right = AVX.make_float8(local_input[i_local,lw+1+ m_8*8 +7],
-					# 								 local_input[i_local, lw+1+ m_8*8 + 6],
-					# 								 local_input[i_local, lw+1+ m_8*8 + 5],
-					# 								 local_input[i_local, lw+1+ m_8*8 + 4],
-					# 								 local_input[i_local, lw+1+ m_8*8 + 3],
-					# 								 local_input[i_local, lw+1+ m_8*8 + 2],
-					# 								 local_input[i_local, lw+1+ m_8*8 + 1],
-					# 								 local_input[i_local,lw+1+ m_8*8 +  0])
-					# kernel_AVX_right =  AVX.make_float8(kernel[i_local,lw+1+ m_8*8 +  7],
-					# 						 kernel[i_local,lw+1+ m_8*8 +  6],
-					# 						 kernel[i_local,lw+1+ m_8*8 +  5],
-					# 						 kernel[i_local,lw+1+ m_8*8 +  4],
-					# 						 kernel[i_local,lw+1+ m_8*8 +  3],
-					# 						 kernel[i_local,lw+1+ m_8*8 +  2],
-					# 						 kernel[i_local,lw+1+ m_8*8 +  1],
-					# 						 kernel[i_local,lw+1+ m_8*8 +  0])
-					# AVX_coef_right = AVX.mul(local_input_AVX_right,kernel_AVX_right)	
-
+				# right part
+				local_input_AVX_right = AVX.make_float8(local_input[i_local, 16],
+												 local_input[i_local, 15],
+												 local_input[i_local, 14],
+												 local_input[i_local, 13],
+												 local_input[i_local, 12],
+												 local_input[i_local, 11],
+												 local_input[i_local, 10],
+												 local_input[i_local, 9])
+				kernel_AVX_right =  AVX.make_float8(kernel[i_local,16],
+										 kernel[i_local,15],
+										 kernel[i_local,14],
+										 kernel[i_local,13],
+										 kernel[i_local,12],
+										 kernel[i_local,11],
+										 kernel[i_local,10],
+										 kernel[i_local,9])
+				AVX_coef_right = AVX.mul(local_input_AVX_right,kernel_AVX_right)	
 
 				for k in range(8):
 					sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_left)[k]
-					# sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_right)[k]
+					sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_right)[k]
 
-				# ---------
-				# here i am checking the sum
-				if i_local ==0:
-					print 'sumg', sumg		
-					check_sum_manual =0.0
-					for j_m in range(0,7):
-						check_sum_manual += local_input[i_local, j_m]*kernel[i_local,j_m]
-					print 'check_sum_manual', check_sum_manual
-					# for j_m in range(17,33):
-					# 	check_sum_manual += local_input[i_local, j_m]*kernel[i_local,j_m]					
-					assert check_sum_manual == test
 
-				# ----------				
+			# top and bottom
+			local_input_AVX_top = AVX.make_float8(local_input[ 7, 8],
+											 local_input[ 6, 8],
+											 local_input[ 5, 8],
+											 local_input[ 4, 8],
+											 local_input[ 3, 8],
+											 local_input[ 2, 8],
+											 local_input[ 1, 8],
+											 local_input[ 0, 8])
+			kernel_AVX_top =  AVX.make_float8(kernel[7, 8],
+									 kernel[6, 8],
+									 kernel[5, 8],
+									 kernel[4, 8],
+									 kernel[3, 8],
+									 kernel[2, 8],
+									 kernel[1, 8],
+									 kernel[0, 8])
+			AVX_coef_top = AVX.mul(local_input_AVX_top,kernel_AVX_top)	
 
-			# # top and bottom
-			# for m_8 in range(n_elem):
-			# 	local_input_AVX_top = AVX.make_float8(local_input[m_8*8 + 7, 8],
-			# 									 local_input[m_8*8 + 6, 8],
-			# 									 local_input[m_8*8 + 5, 8],
-			# 									 local_input[m_8*8 + 4, 8],
-			# 									 local_input[m_8*8 + 3, 8],
-			# 									 local_input[m_8*8 + 2, 8],
-			# 									 local_input[m_8*8 + 1, 8],
-			# 									 local_input[m_8*8 + 0, 8])
-			# 	kernel_AVX_top =  AVX.make_float8(kernel[m_8*8 +7, 8],
-			# 							 kernel[m_8*8 +6, 8],
-			# 							 kernel[m_8*8 +5, 8],
-			# 							 kernel[m_8*8 +4, 8],
-			# 							 kernel[m_8*8 +3, 8],
-			# 							 kernel[m_8*8 +2, 8],
-			# 							 kernel[m_8*8 +1, 8],
-			# 							 kernel[m_8*8 +0, 8])
-			# 	AVX_coef_top = AVX.mul(local_input_AVX_top,kernel_AVX_top)
-			
+			local_input_AVX_bot = AVX.make_float8(local_input[ 16, 8],
+											 local_input[ 15, 8],
+											 local_input[ 14, 8],
+											 local_input[ 13, 8],
+											 local_input[ 12, 8],
+											 local_input[ 11, 8],
+											 local_input[ 10, 8],
+											 local_input[ 9, 8])
+			kernel_AVX_bot =  AVX.make_float8(kernel[16, 8],
+									 kernel[15, 8],
+									 kernel[14, 8],
+									 kernel[13, 8],
+									 kernel[12, 8],
+									 kernel[11, 8],
+									 kernel[10, 8],
+									 kernel[9, 8])
+			AVX_coef_bot = AVX.mul(local_input_AVX_bot,kernel_AVX_bot)
 
-			# 	local_input_AVX_bot = AVX.make_float8(local_input[lw+1+ m_8*8 + 7, 8],
-			# 									 local_input[ lw+1+ m_8*8 +6, 8],
-			# 									 local_input[ lw+1+ m_8*8 +5, 8],
-			# 									 local_input[ lw+1+ m_8*8 +4, 8],
-			# 									 local_input[ lw+1+ m_8*8 +3, 8],
-			# 									 local_input[ lw+1+ m_8*8 +2, 8],
-			# 									 local_input[ lw+1+ m_8*8 +1, 8],
-			# 									 local_input[lw+1+ m_8*8 + 0, 8])
-			# 	kernel_AVX_bot =  AVX.make_float8(kernel[lw+1+ m_8*8 +7, 8],
-			# 							 kernel[lw+1+ m_8*8 +6, 8],
-			# 							 kernel[lw+1+ m_8*8 +5, 8],
-			# 							 kernel[lw+1+ m_8*8 +4, 8],
-			# 							 kernel[lw+1+ m_8*8 +3, 8],
-			# 							 kernel[lw+1+ m_8*8 +2, 8],
-			# 							 kernel[lw+1+ m_8*8 +1, 8],
-			# 							 kernel[lw+1+ m_8*8 +0, 8])
-			# 	AVX_coef_bot = AVX.mul(local_input_AVX_bot,kernel_AVX_bot)
 
-			# 	for k in range(8):
-			# 		sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_top)[k]
-			# 		sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_bot)[k]
-			# 	sumg += kernel[8,8]*local_input[8,8]
-
-				image_out[i, j] = sumg
+			for k in range(8):
+				sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_top)[k]
+				sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_bot)[k]
+			# middle one
+			sumg += kernel[8,8]*local_input[8,8]										
+			# compute the filtered image
+			image_out[i, j] = sumg
 
 	return 					
 
-			# # now sum the two columns in the middle
-			# output_array_top = np.zeros(8, dtype= np.float32)	
-			# output_array_bot = np.zeros(8, dtype= np.float32)	
-			# # Summation over the columns now
-
-			# # sum the top part
-			# # store the 8 adjacent values into one AVX
-			# local_input_AVX_top = AVX.make_float8(local_input[ 7, lw/2-1],
-			# 								 local_input[ 6, lw/2-1],
-			# 								 local_input[ 5, lw/2-1],
-			# 								 local_input[ 4, lw/2-1],
-			# 								 local_input[ 3, lw/2-1],
-			# 								 local_input[ 2, lw/2-1],
-			# 								 local_input[ 1, lw/2-1],
-			# 								 local_input[ 0, lw/2-1])
-			# kernel_AVX_top =  AVX.make_float8(kernel[7, lw/2 -1],
-			# 						 kernel[6, lw/2 -1],
-			# 						 kernel[5, lw/2 -1],
-			# 						 kernel[4, lw/2 -1],
-			# 						 kernel[3, lw/2 -1],
-			# 						 kernel[2, lw/2 -1],
-			# 						 kernel[1, lw/2 -1],
-			# 						 kernel[0, lw/2 -1])
-			# AVX_coef_top = AVX.mul(local_input_AVX_top,kernel_AVX_top)
-
-			# # sum the bot part
-			# # store the 8 adjacent values into one AVX
-			# local_input_AVX_top = AVX.make_float8(local_input[ 16, lw/2-1],
-			# 								 local_input[ 15, lw/2-1],
-			# 								 local_input[ 14, lw/2-1],
-			# 								 local_input[ 13, lw/2-1],
-			# 								 local_input[ 12, lw/2-1],
-			# 								 local_input[ 11, lw/2-1],
-			# 								 local_input[ 10, lw/2-1],
-			# 								 local_input[ 9, lw/2-1])
-			# kernel_AVX_top =  AVX.make_float8(kernel[16, lw/2 -1],
-			# 						 kernel[15, lw/2 -1],
-			# 						 kernel[14, lw/2 -1],
-			# 						 kernel[13, lw/2 -1],
-			# 						 kernel[12, lw/2 -1],
-			# 						 kernel[11, lw/2 -1],
-			# 						 kernel[10, lw/2 -1],
-			# 						 kernel[9, lw/2 -1])
-			# AVX_coef_top = AVX.mul(local_input_AVX_top,kernel_AVX_top)		
-			# for _ in range(	8):
-			# 	output_array_top[_] = <np.float32_t> (<np.float32_t *> &AVX_coef_top)[_]
-			# 	output_array_bot[_] = <np.float32_t> (<np.float32_t *> &AVX_coef_bot)[_]
-			# 	sumg +=   output_array_top[_]	
-			# 	sumg += output_array_bot[_]	
-
-			# # now sum the coef in the middle
-			# sumg += kernel[lw/2 -1 , lw/2 -1 ]* local_input[lw/2 -1 , lw/2 -1]
 			
 
 cpdef _AVX_cython_convolution(int lw,
@@ -531,7 +462,6 @@ class Gaussianfilter2D():
 			image = np.lib.pad(f , self.lw, 'edge')
 
 		return image
-
 
 
 

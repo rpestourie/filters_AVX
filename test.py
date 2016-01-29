@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 from scipy.ndimage.filters import gaussian_filter1d, gaussian_filter
-from Gaussianfilter2D_test import Gaussianfilter2D
+from Gaussianfilter2D_class import Gaussianfilter2D
 
 
 # --------------------------------------------
