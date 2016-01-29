@@ -28,7 +28,7 @@ from scipy.ndimage.filters import gaussian_filter1d, gaussian_filter
 
 truncate = 4.
 sigma = 4.
-imagename = 'test.png'
+imagename = 'small.png'
 
 # get ideal side sizes from arguments
 lw = int(truncate*sigma+0.5)
