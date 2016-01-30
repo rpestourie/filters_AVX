@@ -20,15 +20,18 @@ import time
 from scipy.ndimage.filters import gaussian_filter1d, gaussian_filter
 from Gaussianfilter2D_class import Gaussianfilter2D
 
-
+30
 # --------------------------------------------
 # initialization - define image
 # --------------------------------------------
-imagename = 'small.png'
+imagename = 'test.png'
 
 # load image (only one color now)
 f = misc.imread(imagename)
-f = f[:,:,0]
+if imagename == 'small.png':
+	f = f[:,:,0]
+else:
+	pass
 
 
 
@@ -37,7 +40,7 @@ f = f[:,:,0]
 # --------------------------------------------
 
 # create a instance gaussian filter
-gb = Gaussianfilter2D(sigma = 4.0, truncate = 2.0, mode = 'reflect', cval = 0.0)
+gb = Gaussianfilter2D(sigma = 8.0, truncate = 8.0, mode = 'reflect', cval = 0.0)
 
 
 # --------------------------------------------
