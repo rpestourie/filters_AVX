@@ -94,20 +94,20 @@ cpdef _AVX_cython_convolution(int lw,
 			sumg = 0.0
 
 			# define the image window used for the convolution with the kernel
-			for ii in range(2*lw +1):
-				for jj in range(2 *lw +1):
-					local_input[ii,jj] = image_in[i + ii,j + jj]
+			# for ii in range(2*lw +1):
+			# 	for jj in range(2 *lw +1):
+			# 		local_input[ii,jj] = image_in[i + ii,j + jj]
 
-			# local_input = image_in[i : i + 2*lw + 1, j: j + 2*lw + 1]
+			local_input = image_in[i : i + 2*lw + 1, j: j + 2*lw + 1]
 
 			# Doing the convolution with a first loop on the rows
 			# We use AVX 8 float vectors to loop over the columns
 			# i.e. multiplication and addition of 8 adjacent columns of 
 			# kernel and local_input at a time
 
-			for i_local in range(local_input.shape[0]):
-			# for i_local in prange(local_input.shape[0], \
-			# 	nogil=True, schedule = 'static', chunksize =1, num_threads= num_threads):	
+			# for i_local in range(local_input.shape[0]):
+			for i_local in prange(local_input.shape[0], \
+				nogil=True, schedule = 'static', chunksize =1, num_threads= num_threads):	
 				for m_8 in range(n_elem):
 
 
@@ -228,9 +228,9 @@ cdef _cython_convolution(int lw,
 		for j in range(0 , ly ):
 			local_input = image_in[i : i + 2* lw + 1, j: j + 2* lw + 1]
 			sumg = 0.0
-			for i_local in range(local_input.shape[0]):
-			# for i_local in prange(local_input.shape[0], \
-			# 	nogil=True, schedule = 'static', num_threads= num_threads):
+			# for i_local in range(local_input.shape[0]):
+			for i_local in prange(local_input.shape[0], \
+				nogil=True, schedule = 'static', num_threads= num_threads):
 				for j_local in range(local_input.shape[1]):
 					sumg += local_input[i_local, j_local]*kernel[i_local,j_local]
 			image_out[i, j] = sumg
@@ -598,18 +598,4 @@ cdef _cython_convolution_threading(int lw,
 						sumg += local_input[i_local, j_local]*kernel[i_local,j_local]
 				image_out[i, j] = sumg
 			i += step
-
-# clamped pixel fetch
-# cython decorators
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef inline np.float32_t GETPIX(np.float32_t[:, :] im, int i, int j) nogil:
-	if i < 0:
-		i = 0
-	if i >= im.shape[0]:
-		i = im.shape[0] - 1
-	if j < 0:
-		j = 0
-	if j >= im.shape[1]:
-		j = im.shape[1] - 1
-	return im[i, j]				
+			

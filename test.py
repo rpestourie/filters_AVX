@@ -24,7 +24,7 @@ from Gaussianfilter2D_class import Gaussianfilter2D, filter_cython_threading
 # --------------------------------------------
 # initialization - define image
 # --------------------------------------------*
-imagename = 'small.png'
+imagename = 'test.png'
 
 # load image (only one color now)
 f = misc.imread(imagename)
@@ -39,7 +39,7 @@ else:
 # --------------------------------------------
 
 # create a instance gaussian filter
-gb = Gaussianfilter2D(sigma = 8.0, truncate = 8.0, mode = 'wrap', cval = 0.0, num_threads = 4)
+gb = Gaussianfilter2D(sigma = 8.0, truncate = 8.0, mode = 'wrap', cval = 0.0, num_threads = 8)
 
 
 # --------------------------------------------
@@ -58,13 +58,11 @@ print 'run time python' , gb.run_time_
 gb.filter_cython(f)
 print 'run time cython' , gb.run_time_
 
-
 gb.filter_AVX(f)
 print 'run time AVX' , gb.run_time_
 
 filter_cython_threading(gb,f)
 print 'run time cython with multithreading' , gb.run_time_	
-
 
 
 
