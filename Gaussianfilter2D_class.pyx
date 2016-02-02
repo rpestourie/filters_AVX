@@ -11,15 +11,53 @@ cimport AVX
 from cython.parallel import prange
 cimport numpy as np
 
+'''
+These are the cython functions called by the class Gaussianfilter2D
 
+'''
+
+# cython decorators
 @cython.boundscheck(False)
 @cython.wraparound(False)
 
+cpdef _AVX_cython_convolution (int lw,
+								int lx,
+								int ly,
+								np.float32_t [:,:] image_in,
+								np.float32_t [:,:] image_out,
+								np.float32_t [:,:] kernel,
+								int num_threads ):
+	'''
+	this function does the convolution for the Gaussian filter in 2D
+	the function is written in cython for paralellizing the loops and 
+	also uses AVX for the convolution. 
 
+	Parameters
 
+	----------
 
-cpdef _testing (int lw, int lx, int ly, np.float32_t [:,:] image_in, np.float32_t [:,:] image_out,
-				np.float32_t [:,:] kernel ):
+	lw : int 
+
+		number of adjacent pixels to considers on each sides 
+		of the pixel that is being filtered
+
+	lx, ly : int, int
+
+		size of the image (lx, ly)
+
+	image_in, image_out: np.float32_t
+
+		the input image to be filtered and the resulting image filtered
+
+	kernel: np.float32_t
+
+		the 2D Gaussian kernel used for convolution
+
+	num_threads: int
+
+		the number of threads used for paralellization
+
+	'''
 
 	cdef:
 		int i,j, i_local, k, m_8, n_elem
@@ -33,18 +71,37 @@ cpdef _testing (int lw, int lx, int ly, np.float32_t [:,:] image_in, np.float32_
 		float sumg , check_sum_manual
 		int j_m
 
+	# Find the modulus of the number of adjacent pixels	
+	# note we assume that lw % 8 = 0 in this version of the code
 	n_elem = lw / 8
 
-
-	for i in range(lx):
+	# loop over i and j to filter all the pixels
+	# for i in range(lx):
+	for i in prange(lx, \
+				nogil=True, schedule = 'static', chunksize =1, num_threads= num_threads):	
 		for j in range(ly):
+
+			# For one pixel, we proceed here to the convolution
+			# i.e. np.sum(kernel * local_input)			
+
+			# initialize summation 
 			sumg = 0.0
+			# define the image window used for the convolution with the kernel
 			local_input = image_in[i : i + 2*lw + 1, j: j + 2*lw + 1]
-			# for i_local in range(local_input.shape[0]):
-			for i_local in prange(local_input.shape[0], \
-				nogil=True, schedule = 'static', chunksize =1, num_threads=2):	
+
+			# Doing the convolution with a first loop on the rows
+			# We use AVX 8 float vectors to loop over the columns
+			# i.e. multiplication and addition of 8 adjacent columns of 
+			# kernel and local_input at a time
+
+			for i_local in range(local_input.shape[0]):
+			# for i_local in prange(local_input.shape[0], \
+			# 	nogil=True, schedule = 'static', chunksize =1, num_threads= num_threads):	
 				for m_8 in range(n_elem):
-					# left part
+
+
+					# The pixel in the middle is at (i_local,lw)
+					# here we sum the left part
 					local_input_AVX_left = AVX.make_float8(local_input[i_local,m_8*8+7],
 													 local_input[i_local,m_8*8+ 6],
 													 local_input[i_local,m_8*8+ 5],
@@ -82,11 +139,14 @@ cpdef _testing (int lw, int lx, int ly, np.float32_t [:,:] image_in, np.float32_
 											 kernel[i_local,lw+1+m_8*8+0])
 					AVX_coef_right = AVX.mul(local_input_AVX_right,kernel_AVX_right)	
 
+					# summation of the 8 floats in AVX
 					for k in range(8):
 						sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_left)[k]
 						sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_right)[k]
 				
 
+			# Now we consider the column in the middle (:, lw)
+			# we can multipliate and add after storing into AVX vectors
 			# top and bottom
 			local_input_AVX_top = AVX.make_float8(local_input[m_8*8+ 7, lw],
 											 local_input[ m_8*8+6, lw],
@@ -129,22 +189,23 @@ cpdef _testing (int lw, int lx, int ly, np.float32_t [:,:] image_in, np.float32_
 				sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_top)[k]
 				sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_bot)[k]
 
-			# middle one
+			# add the middle one
 			sumg += kernel[lw,lw]*local_input[lw,lw]										
+
 			# compute the filtered image
 			image_out[i, j] = sumg
-	return 					
 
-			
-
-
+# cython decorators
+@cython.boundscheck(False)
+@cython.wraparound(False)
 
 cdef _cython_convolution(int lw,
 						int  lx,
 						int  ly,
 						np.float32_t [:,:] image_in,
 						np.float32_t [:,:] image_out,
-						np.float32_t [:,:] kernel):
+						np.float32_t [:,:] kernel,
+						int num_threads):
 
 	cdef:
 		int i, j, i_local, j_local
@@ -157,10 +218,17 @@ cdef _cython_convolution(int lw,
 			local_input = image_in[i : i + 2* lw + 1, j: j + 2* lw + 1]
 			sumg = 0.0
 			for i_local in range(local_input.shape[0]):
+			# for i_local in prange(local_input.shape[0], \
+			# 	nogil=True, schedule = 'static', chunksize =1, num_threads= num_threads):
 				for j_local in range(local_input.shape[1]):
 					sumg += local_input[i_local, j_local]*kernel[i_local,j_local]
 			image_out[i, j] = sumg
-	return 
+
+
+'''
+Here is the class Gaussianfilter2D
+
+'''	
 
 
 class Gaussianfilter2D():
@@ -229,28 +297,24 @@ class Gaussianfilter2D():
 		function
 
 	'''
-	def __init__(self, sigma, truncate = 4.0 , mode = 'reflect', cval = 0.0):
+	def __init__(self, sigma, truncate = 4.0 , mode = 'reflect', cval = 0.0,
+					num_threads = 4):
 
 
 		self.sigma = sigma
 		self.truncate = truncate
 		self.mode = mode
 		self.cval = cval
+		self.num_threads = num_threads
 
 
-		# lw is the number of adjacent pixels to consider in 1D
+		# lw is the number of adjacent pixels on both sides to consider in 1D
 		# when using the filter	
 		self.lw = int(truncate*sigma+0.5) 	
 
-		# pan is the size of the 1D window used to convolute with the gaussian filter
-		# it needs 16 pixels on both sides + the considered pixel in the middle
-		self.pan = 2 * self.lw + 1
-
-		# for now we take values on the right until it fills a multiple of 8
-		# AVX is in x direction (in the matrix)
-		self.span = (self.pan // 8 + 1) * 8
 
 	@property
+	# this is read only
 	def kernel_(self):
 
 		'''
@@ -259,7 +323,7 @@ class Gaussianfilter2D():
 
 		# initialize the size of the gaussian kernel
 		# kernel size: pan * pan (33 * 33 when truncate = 4.0 and sigma = 4.0)
-		self._kernel = np.zeros((self.pan,self.pan))
+		self._kernel = np.zeros((2 * self.lw + 1,2 * self.lw +1 ))
 
 		# find the distance to the center of all pixels in the kernel
 		for i in range(0,self.lw+1):
@@ -297,6 +361,20 @@ class Gaussianfilter2D():
 				self.image_[i , j]= np.sum(local_input*self._kernel)
 		return self.image_
 
+	def _return_cython_convolution(self, lx, ly, image):
+
+		# convolution using the Gaussian kernel
+
+		# initialize for cython
+		image_in = np.array(image, dtype = np.float32)
+		image_out = np.zeros((lx,ly), dtype = np.float32)
+		kernel = np.array(self._kernel, dtype = np.float32)
+		_cython_convolution(self.lw, lx, ly, image_in, image_out, kernel, self.num_threads)
+
+		self.image_ = image_out
+
+		return self.image_		
+
 	def _return_AVX_cython_convolution(self, lx, ly, image):
 
 		# convolution using the Gaussian kernel
@@ -305,15 +383,13 @@ class Gaussianfilter2D():
 		image_in = np.array(image, dtype = np.float32)
 		image_out = np.zeros((lx,ly), dtype = np.float32)
 		kernel = np.array(self._kernel, dtype = np.float32)
-		# _AVX_cython_convolution(self.lw, lx, ly, image_in, image_out, self._kernel)
-		_testing(self.lw, lx, ly, image_in, image_out, kernel)
-		# _cython_convolution(self.lw, lx, ly, image_in, image_out, kernel)
+		_AVX_cython_convolution(self.lw, lx, ly, image_in, image_out, kernel, self.num_threads)
 
 		self.image_ = image_out
 
 		return self.image_
 
-	def filter_cython(self,f):
+	def filter_AVX(self,f):
 
 
 		start = time.time()
@@ -333,6 +409,35 @@ class Gaussianfilter2D():
 		# run the filter with scipy to get error and run time difference
 		self.filter_scipy(f)
 		self.error_ = np.linalg.norm(self.image_benchmark_-self.image_)
+
+		# run time is normalized by the run time of the scipy library
+		self.run_time_ /= self.run_time_benchmark_
+
+		return self		
+
+	def filter_cython(self,f):
+
+
+		start = time.time()
+		self.image_ = f * 0.0
+		lx, ly = f.shape
+		# create the gaussian filter kernel
+		self._kernel = self.kernel_
+
+		# implement the different type of method to treat the edges
+		image = self._padding(f)
+
+		# convolution with the gaussian kernel for filtering
+		self.image_= self._return_cython_convolution(lx,ly,image)
+
+		self.run_time_ = time.time() - start
+
+		# run the filter with scipy to get error and run time difference
+		self.filter_scipy(f)
+		self.error_ = np.linalg.norm(self.image_benchmark_-self.image_)
+
+		# run time is normalized by the run time of the scipy library
+		self.run_time_ /= self.run_time_benchmark_
 
 		return self
 
@@ -356,6 +461,9 @@ class Gaussianfilter2D():
 		# run the filter with scipy to get error and run time difference
 		self.filter_scipy(f)
 		self.error_ = np.linalg.norm(self.image_benchmark_-self.image_)
+
+		# run time is normalized by the run time of the scipy library
+		self.run_time_ /= self.run_time_benchmark_
 
 		return self
 

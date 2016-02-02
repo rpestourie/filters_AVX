@@ -40,7 +40,7 @@ else:
 # --------------------------------------------
 
 # create a instance gaussian filter
-gb = Gaussianfilter2D(sigma = 8.0, truncate = 8.0, mode = 'reflect', cval = 0.0)
+gb = Gaussianfilter2D(sigma = 8.0, truncate = 8.0, mode = 'wrap', cval = 0.0, num_threads = 8)
 
 
 # --------------------------------------------
@@ -48,21 +48,19 @@ gb = Gaussianfilter2D(sigma = 8.0, truncate = 8.0, mode = 'reflect', cval = 0.0)
 # --------------------------------------------
 
 
-print 'lw', gb.lw 
-print 'pan', gb.pan
-print 'span', gb.span
-print 'f.shape', f.shape
+# print 'lw', gb.lw 
+# print 'pan', gb.pan
+# print 'span', gb.span
+# print 'f.shape', f.shape
 
-gb.filter_cython(f)
-
-print 'error compared to scipy', gb.error_
-
-print 'run time scipy' , gb.run_time_benchmark_
+gb.filter_python(f)
 print 'run time python' , gb.run_time_
 
-print 'error other compared to scipy', gb.error_
+gb.filter_cython(f)
+print 'run time cython' , gb.run_time_
 
-print 'kernel.shape', gb.kernel_.shape
+gb.filter_AVX(f)
+print 'run time AVX' , gb.run_time_
 
 
 
@@ -74,7 +72,7 @@ print 'kernel.shape', gb.kernel_.shape
 fig, ax = plt.subplots(1,2)
 ax[0].imshow(gb.image_);
 ax[0].set_title('Python algorithm');
-ax[1].imshow(gb.image_benchmark_);
+ax[1].imshow(f);
 ax[1].set_title('Scipy library');
 plt.show()
 
