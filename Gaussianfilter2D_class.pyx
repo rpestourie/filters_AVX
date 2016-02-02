@@ -236,62 +236,6 @@ cdef _cython_convolution(int lw,
 			image_out[i, j] = sumg
 
 
-# cython decorators
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef _cython_convolution_threading(int lw,
-						int  lx,
-						int  ly,
-						np.float32_t [:,:] image_in,
-						np.float32_t [:,:] image_out,
-						np.float32_t [:,:] kernel,
-						int offset,
-						unsigned int step):
-	cdef:
-		int i, j, i_local, j_local
-		np.float32_t [:,:] local_input
-		float sumg
-
-	# # convolution with the gaussian kernel for filtering
-	with nogil:
-		i = offset
-		while i < lx :
-			for j in range(0 , ly ):
-		# 		local_input = image_in[i : i + 1, j: j + 2* lw + 1]
-		# 		sumg = 0.0
-		# 		for i_local in range(local_input.shape[0]):
-		# 			for j_local in range(local_input.shape[1]):
-		# 				sumg += local_input[i_local, j_local]*kernel[i_local,j_local]
-				image_out[i, j] = GETPIX(image_in,i,j)
-			i += step
-
-# clamped pixel fetch
-# cython decorators
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef inline np.float32_t GETPIX(np.float32_t[:, :] im, int i, int j) nogil:
-	if i < 0:
-		i = 0
-	if i >= im.shape[0]:
-		i = im.shape[0] - 1
-	if j < 0:
-		j = 0
-	if j >= im.shape[1]:
-		j = im.shape[1] - 1
-	return im[i, j]			
-
-
-# cdef testing(np.float32_t [:,:] image_out,
-# 			int offset,
-# 			unsigned int step):
-
-# 	cdef:
-# 		int i,j
-# 	with nogil:
-# 		i = offset
-# 		image_out[i,1] += 1
-
-
 '''
 Here is the class Gaussianfilter2D
 
@@ -576,7 +520,7 @@ def filter_cython_threading(gb, f):
 	image = gb._padding(f)
 
 	# convolution with the gaussian kernel for filtering
-	gb.image_= _return_cython_convolution_threading(lx,ly,image,gb._kernel,gb.num_threads)
+	gb.image_= _return_cython_convolution_threading(gb.lw,lx,ly,image,gb._kernel,gb.num_threads)
 
 	gb.run_time_ = time.time() - start
 
@@ -589,7 +533,7 @@ def filter_cython_threading(gb, f):
 
 	return gb	
 
-def _return_cython_convolution_threading(lx, ly, image,kernel,num_threads):
+def _return_cython_convolution_threading(lw,lx, ly, image,kernel,num_threads):
 
 	# convolution using the Gaussian kernel
 
@@ -601,10 +545,10 @@ def _return_cython_convolution_threading(lx, ly, image,kernel,num_threads):
 	# # Create a list of threads
 	threads = []
 	for thread_id in range(num_threads):
-		t = threading.Thread(target = filter_threading, args = (image_out,thread_id))
-		# my_t = threading.Thread(target = _cython_convolution_threading,
-		# 					args = (self.lw, lx, ly, image_in, image_out, kernel, 
-		# thread_id,  self.num_threads))
+		# t = threading.Thread(target = filter_threading, args = (image_out,thread_id))
+		t = threading.Thread(target = filter_threading,
+							args = (lw, lx, ly, image_in, image_out, kernel, 
+									thread_id,num_threads))
 		threads.append(t)
 		t.start()
 	# make sure all the threads are done
@@ -612,15 +556,60 @@ def _return_cython_convolution_threading(lx, ly, image,kernel,num_threads):
 
 	return image_out		
 
-def filter_threading(image_out,thread_id):
-	print('thread_id {}: image_out before= {} '.format(thread_id,image_out[0,0]))
-	filter_threading_2(image_out, thread_id)
-	print('thread_id {}: image_out after= {} '.format(thread_id,image_out[0,0]))
+def filter_threading(lw, lx, ly, image_in,image_out,kernel,thread_id, num_threads):
+	# print('thread_id {}: image_out before= {} '.format(thread_id,image_out[0,0]))
+	assert np.all(image_out[thread_id,:] == 0)
+	_cython_convolution_threading(lw, lx, ly, image_in,image_out,kernel,thread_id, num_threads)
+	# print('thread_id {}: image_in after= {} , image_out after= {} '
+	# 	.format(thread_id,image_in[thread_id+ num_threads,-8::],image_out[thread_id+ num_threads,-8::]))
 	return image_out	
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef filter_threading_2(np.float32_t [:,:] image_out,int thread_id):
-	# print('thread_id {}: image_out before= {} '.format(thread_id,image_out[0,0]))
 	image_out[0,0] += 1
-	# print('thread_id {}: image_out after= {} '.format(thread_id,image_out[0,0]))
+
+
+# cython decorators
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef _cython_convolution_threading(int lw,
+						int  lx,
+						int  ly,
+						np.float32_t [:,:] image_in,
+						np.float32_t [:,:] image_out,
+						np.float32_t [:,:] kernel,
+						int offset,
+						unsigned int step):
+	cdef:
+		int i, j, i_local, j_local
+		np.float32_t [:,:] local_input
+		float sumg
+
+	# # convolution with the gaussian kernel for filtering
+	with nogil:
+		i = offset
+		while i < lx :
+			for j in range(0, ly ):
+				local_input = image_in[i : i +2* lw+ 1, j: j + 2* lw + 1]
+				sumg = 0.0
+				for i_local in range(local_input.shape[0]):
+					for j_local in range(local_input.shape[1]):
+						sumg += local_input[i_local, j_local]*kernel[i_local,j_local]
+				image_out[i, j] = sumg
+			i += step
+
+# clamped pixel fetch
+# cython decorators
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline np.float32_t GETPIX(np.float32_t[:, :] im, int i, int j) nogil:
+	if i < 0:
+		i = 0
+	if i >= im.shape[0]:
+		i = im.shape[0] - 1
+	if j < 0:
+		j = 0
+	if j >= im.shape[1]:
+		j = im.shape[1] - 1
+	return im[i, j]				

@@ -55,15 +55,15 @@ gb = Gaussianfilter2D(sigma = 8.0, truncate = 8.0, mode = 'wrap', cval = 0.0, nu
 gb.filter_python(f)
 print 'run time python' , gb.run_time_
 
-# gb.filter_cython(f)
-# print 'run time cython' , gb.run_time_
+gb.filter_cython(f)
+print 'run time cython' , gb.run_time_
 
-
-filter_cython_threading(gb,f)
-print 'run time cython with multithreading' , gb.run_time_
 
 gb.filter_AVX(f)
 print 'run time AVX' , gb.run_time_
+
+filter_cython_threading(gb,f)
+print 'run time cython with multithreading' , gb.run_time_	
 
 
 
@@ -72,11 +72,11 @@ print 'run time AVX' , gb.run_time_
 # # plot the images
 # # --------------------------------------------
 
-# fig, ax = plt.subplots(1,2)
-# ax[0].imshow(gb.image_);
-# ax[0].set_title('Python algorithm');
-# ax[1].imshow(f);
-# ax[1].set_title('Scipy library');
-# plt.show()
+fig, ax = plt.subplots(1,2)
+ax[0].imshow(gb.image_);
+ax[0].set_title('Python algorithm');
+ax[1].imshow(f);
+ax[1].set_title('Scipy library');
+plt.show()
 
 
