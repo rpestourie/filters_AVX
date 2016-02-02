@@ -60,7 +60,7 @@ cpdef _AVX_cython_convolution (int lw,
 	'''
 
 	cdef:
-		int i,j, i_local, k, m_8, n_elem
+		int i,j, i_local, k, m_8, n_elem, ii, jj
 		np.float32_t [:,:] local_input
 		np.float32_t [:] output_array_left,output_array_right, \
 							output_array_top, output_array_bot
@@ -76,18 +76,26 @@ cpdef _AVX_cython_convolution (int lw,
 	n_elem = lw / 8
 
 	# loop over i and j to filter all the pixels
-	# for i in range(lx):
-	for i in prange(lx, \
-				nogil=True, schedule = 'static', chunksize =1, num_threads= num_threads):	
-		for j in range(ly):
+	local_input = np.zeros((2 * lw + 1, 2 * lw + 1), dtype = np.float32)
+	for i in range(lx):
+	# for i in prange(lx, \
+	# 			nogil=True, schedule = 'static', chunksize =1, num_threads= num_threads):	
+		# for j in range(ly):
+		for j in prange(ly, \
+					nogil=True, schedule = 'dynamic', chunksize =1, num_threads= num_threads):	
 
 			# For one pixel, we proceed here to the convolution
 			# i.e. np.sum(kernel * local_input)			
 
 			# initialize summation 
 			sumg = 0.0
+
 			# define the image window used for the convolution with the kernel
-			local_input = image_in[i : i + 2*lw + 1, j: j + 2*lw + 1]
+			for ii in range(2*lw +1):
+				for jj in range(2 *lw +1):
+					local_input[ii,jj] = image_in[i + ii,j + jj]
+
+			# local_input = image_in[i : i + 2*lw + 1, j: j + 2*lw + 1]
 
 			# Doing the convolution with a first loop on the rows
 			# We use AVX 8 float vectors to loop over the columns

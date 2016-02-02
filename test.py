@@ -24,7 +24,7 @@ from Gaussianfilter2D_class import Gaussianfilter2D
 # --------------------------------------------
 # initialization - define image
 # --------------------------------------------
-imagename = 'test.png'
+imagename = 'small.png'
 
 # load image (only one color now)
 f = misc.imread(imagename)
@@ -32,7 +32,6 @@ if imagename == 'small.png':
 	f = f[:,:,0]
 else:
 	pass
-
 
 
 # --------------------------------------------
@@ -69,11 +68,11 @@ print 'run time AVX' , gb.run_time_
 # # plot the images
 # # --------------------------------------------
 
-fig, ax = plt.subplots(1,2)
-ax[0].imshow(gb.image_);
-ax[0].set_title('Python algorithm');
-ax[1].imshow(f);
-ax[1].set_title('Scipy library');
-plt.show()
+# fig, ax = plt.subplots(1,2)
+# ax[0].imshow(gb.image_);
+# ax[0].set_title('Python algorithm');
+# ax[1].imshow(f);
+# ax[1].set_title('Scipy library');
+# plt.show()
 
 
