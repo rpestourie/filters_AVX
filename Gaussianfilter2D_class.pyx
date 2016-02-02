@@ -8,19 +8,22 @@ from scipy.ndimage.filters import gaussian_filter1d, gaussian_filter
 # ------------------------------------------------------------
 cimport cython
 cimport AVX
-from cython.parallel import prange
+from cython.parallel import prange,parallel
 cimport numpy as np
+import threading
+# import cython_threading
 
 '''
 These are the cython functions called by the class Gaussianfilter2D
 
 '''
 
+
 # cython decorators
 @cython.boundscheck(False)
 @cython.wraparound(False)
 
-cpdef _AVX_cython_convolution (int lw,
+cpdef _AVX_cython_convolution(int lw,
 								int lx,
 								int ly,
 								np.float32_t [:,:] image_in,
@@ -80,9 +83,9 @@ cpdef _AVX_cython_convolution (int lw,
 	for i in range(lx):
 	# for i in prange(lx, \
 	# 			nogil=True, schedule = 'static', chunksize =1, num_threads= num_threads):	
-		# for j in range(ly):
-		for j in prange(ly, \
-					nogil=True, schedule = 'dynamic', chunksize =1, num_threads= num_threads):	
+		for j in range(ly):
+		# for j in prange(ly, \
+		# 			nogil=True, schedule = 'static', chunksize =1, num_threads= num_threads):	
 
 			# For one pixel, we proceed here to the convolution
 			# i.e. np.sum(kernel * local_input)			
@@ -227,10 +230,66 @@ cdef _cython_convolution(int lw,
 			sumg = 0.0
 			for i_local in range(local_input.shape[0]):
 			# for i_local in prange(local_input.shape[0], \
-			# 	nogil=True, schedule = 'static', chunksize =1, num_threads= num_threads):
+			# 	nogil=True, schedule = 'static', num_threads= num_threads):
 				for j_local in range(local_input.shape[1]):
 					sumg += local_input[i_local, j_local]*kernel[i_local,j_local]
 			image_out[i, j] = sumg
+
+
+# cython decorators
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef _cython_convolution_threading(int lw,
+						int  lx,
+						int  ly,
+						np.float32_t [:,:] image_in,
+						np.float32_t [:,:] image_out,
+						np.float32_t [:,:] kernel,
+						int offset,
+						unsigned int step):
+	cdef:
+		int i, j, i_local, j_local
+		np.float32_t [:,:] local_input
+		float sumg
+
+	# # convolution with the gaussian kernel for filtering
+	with nogil:
+		i = offset
+		while i < lx :
+			for j in range(0 , ly ):
+		# 		local_input = image_in[i : i + 1, j: j + 2* lw + 1]
+		# 		sumg = 0.0
+		# 		for i_local in range(local_input.shape[0]):
+		# 			for j_local in range(local_input.shape[1]):
+		# 				sumg += local_input[i_local, j_local]*kernel[i_local,j_local]
+				image_out[i, j] = GETPIX(image_in,i,j)
+			i += step
+
+# clamped pixel fetch
+# cython decorators
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline np.float32_t GETPIX(np.float32_t[:, :] im, int i, int j) nogil:
+	if i < 0:
+		i = 0
+	if i >= im.shape[0]:
+		i = im.shape[0] - 1
+	if j < 0:
+		j = 0
+	if j >= im.shape[1]:
+		j = im.shape[1] - 1
+	return im[i, j]			
+
+
+# cdef testing(np.float32_t [:,:] image_out,
+# 			int offset,
+# 			unsigned int step):
+
+# 	cdef:
+# 		int i,j
+# 	with nogil:
+# 		i = offset
+# 		image_out[i,1] += 1
 
 
 '''
@@ -381,8 +440,9 @@ class Gaussianfilter2D():
 
 		self.image_ = image_out
 
-		return self.image_		
+		return self.image_	
 
+		
 	def _return_AVX_cython_convolution(self, lx, ly, image):
 
 		# convolution using the Gaussian kernel
@@ -447,7 +507,7 @@ class Gaussianfilter2D():
 		# run time is normalized by the run time of the scipy library
 		self.run_time_ /= self.run_time_benchmark_
 
-		return self
+		return self	
 
 	def filter_python(self,f):
 
@@ -504,6 +564,63 @@ class Gaussianfilter2D():
 
 
 
+def filter_cython_threading(gb, f):
 
+	start = time.time()
+	gb.image_ = f * 0.0
+	lx, ly = f.shape
+	# create the gaussian filter kernel
+	gb._kernel = gb.kernel_
 
+	# implement the different type of method to treat the edges
+	image = gb._padding(f)
 
+	# convolution with the gaussian kernel for filtering
+	gb.image_= _return_cython_convolution_threading(lx,ly,image,gb._kernel,gb.num_threads)
+
+	gb.run_time_ = time.time() - start
+
+	# run the filter with scipy to get error and run time difference
+	gb.filter_scipy(f)
+	gb.error_ = np.linalg.norm(gb.image_benchmark_-gb.image_)
+
+	# run time is normalized by the run time of the scipy library
+	gb.run_time_ /= gb.run_time_benchmark_
+
+	return gb	
+
+def _return_cython_convolution_threading(lx, ly, image,kernel,num_threads):
+
+	# convolution using the Gaussian kernel
+
+	# initialize for cython
+	image_in = np.array(image, dtype = np.float32)
+	image_out = np.zeros((lx,ly), dtype = np.float32)
+	kernel = np.array(kernel, dtype = np.float32)
+
+	# # Create a list of threads
+	threads = []
+	for thread_id in range(num_threads):
+		t = threading.Thread(target = filter_threading, args = (image_out,thread_id))
+		# my_t = threading.Thread(target = _cython_convolution_threading,
+		# 					args = (self.lw, lx, ly, image_in, image_out, kernel, 
+		# thread_id,  self.num_threads))
+		threads.append(t)
+		t.start()
+	# make sure all the threads are done
+	[t.join() for t in threads]
+
+	return image_out		
+
+def filter_threading(image_out,thread_id):
+	print('thread_id {}: image_out before= {} '.format(thread_id,image_out[0,0]))
+	filter_threading_2(image_out, thread_id)
+	print('thread_id {}: image_out after= {} '.format(thread_id,image_out[0,0]))
+	return image_out	
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef filter_threading_2(np.float32_t [:,:] image_out,int thread_id):
+	# print('thread_id {}: image_out before= {} '.format(thread_id,image_out[0,0]))
+	image_out[0,0] += 1
+	# print('thread_id {}: image_out after= {} '.format(thread_id,image_out[0,0]))
