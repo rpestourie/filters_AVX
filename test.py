@@ -24,7 +24,7 @@ from Gaussianfilter2D_class import Gaussianfilter2D, filter_cython_threading
 # --------------------------------------------
 # initialization - define image
 # --------------------------------------------*
-imagename = 'test.png'
+imagename = 'small.png'
 
 # load image (only one color now)
 f = misc.imread(imagename)
@@ -39,7 +39,7 @@ else:
 # --------------------------------------------
 
 # create a instance gaussian filter
-gb = Gaussianfilter2D(sigma = 8.0, truncate = 8.0, mode = 'wrap', cval = 0.0, num_threads = 8)
+gb = Gaussianfilter2D(sigma = 8.0, truncate = 8.0, mode = 'wrap', cval = 0.0, num_threads = 4)
 
 
 # --------------------------------------------

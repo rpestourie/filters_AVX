@@ -590,7 +590,7 @@ cdef _cython_convolution_threading(int lw,
 	with nogil:
 		i = offset
 		while i < lx :
-			for j in range(0, ly ):
+			for j in range(0, ly):
 				local_input = image_in[i : i +2* lw+ 1, j: j + 2* lw + 1]
 				sumg = 0.0
 				for i_local in range(local_input.shape[0]):
