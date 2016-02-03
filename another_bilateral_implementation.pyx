@@ -1,14 +1,14 @@
+
 import numpy as np
 cimport numpy as np
 cimport cython
-import numpy
 from libc.math cimport exp
 cimport AVX
 from cython.parallel import prange
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-
+@cython.initializedcheck(False)
 
 cdef float gaussian(float x2,
                 float sigma) nogil:
