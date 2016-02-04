@@ -64,13 +64,13 @@ cpdef _AVX_cython_convolution(int lw,
 
 	cdef:
 		int i,j, i_local, k, m_8, n_elem, ii, jj
-		np.float32_t [:,:] local_input
+		np.float32_t [:,:] window
 		np.float32_t [:] output_array_left,output_array_right, \
 							output_array_top, output_array_bot
-		AVX.float8 AVX_coef_left, kernel_AVX_left, local_input_AVX_left, \
-							AVX_coef_right, kernel_AVX_right, local_input_AVX_right,\
-							AVX_coef_top, kernel_AVX_top , local_input_AVX_top, \
-							AVX_coef_bot, kernel_AVX_bot, local_input_AVX_bot
+		AVX.float8 AVX_coef_left, kernel_AVX_left, window_AVX_left, \
+							AVX_coef_right, kernel_AVX_right, window_AVX_right,\
+							AVX_coef_top, kernel_AVX_top , window_AVX_top, \
+							AVX_coef_bot, kernel_AVX_bot, window_AVX_bot
 		float sumg , check_sum_manual
 		int j_m
 
@@ -79,7 +79,7 @@ cpdef _AVX_cython_convolution(int lw,
 	n_elem = lw / 8
 
 	# loop over i and j to filter all the pixels
-	local_input = np.zeros((2 * lw + 1, 2 * lw + 1), dtype = np.float32)
+	window = np.zeros((2 * lw + 1, 2 * lw + 1), dtype = np.float32)
 	for i in range(lx):
 	# for i in prange(lx, \
 	# 			nogil=True, schedule = 'static', chunksize =1, num_threads= num_threads):	
@@ -88,7 +88,7 @@ cpdef _AVX_cython_convolution(int lw,
 		# 			nogil=True, schedule = 'static', chunksize =1, num_threads= num_threads):	
 
 			# For one pixel, we proceed here to the convolution
-			# i.e. np.sum(kernel * local_input)			
+			# i.e. np.sum(kernel * window)			
 
 			# initialize summation 
 			sumg = 0.0
@@ -96,31 +96,31 @@ cpdef _AVX_cython_convolution(int lw,
 			# define the image window used for the convolution with the kernel
 			# for ii in range(2*lw +1):
 			# 	for jj in range(2 *lw +1):
-			# 		local_input[ii,jj] = image_in[i + ii,j + jj]
+			# 		window[ii,jj] = image_in[i + ii,j + jj]
 
-			local_input = image_in[i : i + 2*lw + 1, j: j + 2*lw + 1]
+			window = image_in[i : i + 2*lw + 1, j: j + 2*lw + 1]
 
 			# Doing the convolution with a first loop on the rows
 			# We use AVX 8 float vectors to loop over the columns
 			# i.e. multiplication and addition of 8 adjacent columns of 
-			# kernel and local_input at a time
+			# kernel and window at a time
 
-			# for i_local in range(local_input.shape[0]):
-			for i_local in prange(local_input.shape[0], \
+			# for i_local in range(window.shape[0]):
+			for i_local in prange(window.shape[0], \
 				nogil=True, schedule = 'static', chunksize =1, num_threads= num_threads):	
 				for m_8 in range(n_elem):
 
 
 					# The pixel in the middle is at (i_local,lw)
 					# here we sum the left part
-					local_input_AVX_left = AVX.make_float8(local_input[i_local,m_8*8+7],
-													 local_input[i_local,m_8*8+ 6],
-													 local_input[i_local,m_8*8+ 5],
-													 local_input[i_local,m_8*8+ 4],
-													 local_input[i_local,m_8*8+ 3],
-													 local_input[i_local,m_8*8+ 2],
-													 local_input[i_local,m_8*8+ 1],
-													 local_input[i_local,m_8*8+ 0])
+					window_AVX_left = AVX.make_float8(window[i_local,m_8*8+7],
+													 window[i_local,m_8*8+ 6],
+													 window[i_local,m_8*8+ 5],
+													 window[i_local,m_8*8+ 4],
+													 window[i_local,m_8*8+ 3],
+													 window[i_local,m_8*8+ 2],
+													 window[i_local,m_8*8+ 1],
+													 window[i_local,m_8*8+ 0])
 					kernel_AVX_left =  AVX.make_float8(kernel[i_local,m_8*8+7],
 											 kernel[i_local,m_8*8+6],
 											 kernel[i_local,m_8*8+5],
@@ -129,17 +129,17 @@ cpdef _AVX_cython_convolution(int lw,
 											 kernel[i_local,m_8*8+2],
 											 kernel[i_local,m_8*8+1],
 											 kernel[i_local,m_8*8+0])
-					AVX_coef_left = AVX.mul(local_input_AVX_left,kernel_AVX_left)
+					AVX_coef_left = AVX.mul(window_AVX_left,kernel_AVX_left)
 
 					# right part
-					local_input_AVX_right = AVX.make_float8(local_input[i_local,lw+1+m_8*8+ 7],
-													 local_input[i_local, lw+1+ m_8*8+6],
-													 local_input[i_local, lw+1+ m_8*8+5],
-													 local_input[i_local, lw+1+ m_8*8+4],
-													 local_input[i_local, lw+1+ m_8*8+3],
-													 local_input[i_local, lw+1+ m_8*8+2],
-													 local_input[i_local, lw+1+ m_8*8+1],
-													 local_input[i_local,lw+1+  m_8*8+0])
+					window_AVX_right = AVX.make_float8(window[i_local,lw+1+m_8*8+ 7],
+													 window[i_local, lw+1+ m_8*8+6],
+													 window[i_local, lw+1+ m_8*8+5],
+													 window[i_local, lw+1+ m_8*8+4],
+													 window[i_local, lw+1+ m_8*8+3],
+													 window[i_local, lw+1+ m_8*8+2],
+													 window[i_local, lw+1+ m_8*8+1],
+													 window[i_local,lw+1+  m_8*8+0])
 					kernel_AVX_right =  AVX.make_float8(kernel[i_local,lw+1+m_8*8+7],
 											 kernel[i_local,lw+1+m_8*8+6],
 											 kernel[i_local,lw+1+m_8*8+5],
@@ -148,7 +148,7 @@ cpdef _AVX_cython_convolution(int lw,
 											 kernel[i_local,lw+1+m_8*8+2],
 											 kernel[i_local,lw+1+m_8*8+1],
 											 kernel[i_local,lw+1+m_8*8+0])
-					AVX_coef_right = AVX.mul(local_input_AVX_right,kernel_AVX_right)	
+					AVX_coef_right = AVX.mul(window_AVX_right,kernel_AVX_right)	
 
 					# summation of the 8 floats in AVX
 					for k in range(8):
@@ -159,14 +159,14 @@ cpdef _AVX_cython_convolution(int lw,
 			# Now we consider the column in the middle (:, lw)
 			# we can multipliate and add after storing into AVX vectors
 			# top and bottom
-			local_input_AVX_top = AVX.make_float8(local_input[m_8*8+ 7, lw],
-											 local_input[ m_8*8+6, lw],
-											 local_input[ m_8*8+5, lw],
-											 local_input[ m_8*8+4, lw],
-											 local_input[ m_8*8+3, lw],
-											 local_input[ m_8*8+2, lw],
-											 local_input[ m_8*8+1, lw],
-											 local_input[ m_8*8+0, lw])
+			window_AVX_top = AVX.make_float8(window[m_8*8+ 7, lw],
+											 window[ m_8*8+6, lw],
+											 window[ m_8*8+5, lw],
+											 window[ m_8*8+4, lw],
+											 window[ m_8*8+3, lw],
+											 window[ m_8*8+2, lw],
+											 window[ m_8*8+1, lw],
+											 window[ m_8*8+0, lw])
 			kernel_AVX_top =  AVX.make_float8(kernel[m_8*8+7, lw],
 									 kernel[m_8*8+6, lw],
 									 kernel[m_8*8+5, lw],
@@ -175,16 +175,16 @@ cpdef _AVX_cython_convolution(int lw,
 									 kernel[m_8*8+2, lw],
 									 kernel[m_8*8+1, lw],
 									 kernel[m_8*8+0, lw])
-			AVX_coef_top = AVX.mul(local_input_AVX_top,kernel_AVX_top)	
+			AVX_coef_top = AVX.mul(window_AVX_top,kernel_AVX_top)	
 
-			local_input_AVX_bot = AVX.make_float8(local_input[lw+1+ m_8*8+7, lw],
-											 local_input[ lw+1+ m_8*8+6, lw],
-											 local_input[ lw+1+ m_8*8+5, lw],
-											 local_input[ lw+1+ m_8*8+4, lw],
-											 local_input[ lw+1+ m_8*8+3, lw],
-											 local_input[ lw+1+ m_8*8+2, lw],
-											 local_input[ lw+1+ m_8*8+1, lw],
-											 local_input[lw+1+  m_8*8+0, lw])
+			window_AVX_bot = AVX.make_float8(window[lw+1+ m_8*8+7, lw],
+											 window[ lw+1+ m_8*8+6, lw],
+											 window[ lw+1+ m_8*8+5, lw],
+											 window[ lw+1+ m_8*8+4, lw],
+											 window[ lw+1+ m_8*8+3, lw],
+											 window[ lw+1+ m_8*8+2, lw],
+											 window[ lw+1+ m_8*8+1, lw],
+											 window[lw+1+  m_8*8+0, lw])
 			kernel_AVX_bot =  AVX.make_float8(kernel[lw+1+m_8*8+7, lw],
 									 kernel[lw+1+m_8*8+6, lw],
 									 kernel[lw+1+m_8*8+5, lw],
@@ -193,7 +193,7 @@ cpdef _AVX_cython_convolution(int lw,
 									 kernel[lw+1+m_8*8+2, lw],
 									 kernel[lw+1+m_8*8+1, lw],
 									 kernel[lw+1+ m_8*8+0, lw])
-			AVX_coef_bot = AVX.mul(local_input_AVX_bot,kernel_AVX_bot)
+			AVX_coef_bot = AVX.mul(window_AVX_bot,kernel_AVX_bot)
 
 
 			for k in range(8):
@@ -201,7 +201,7 @@ cpdef _AVX_cython_convolution(int lw,
 				sumg += <np.float32_t> (<np.float32_t *> &AVX_coef_bot)[k]
 
 			# add the middle one
-			sumg += kernel[lw,lw]*local_input[lw,lw]										
+			sumg += kernel[lw,lw]*window[lw,lw]										
 
 			# compute the filtered image
 			image_out[i, j] = sumg
@@ -220,19 +220,19 @@ cdef _cython_convolution(int lw,
 
 	cdef:
 		int i, j, i_local, j_local
-		np.float32_t [:,:] local_input
+		np.float32_t [:,:] window
 		float sumg
 
 	# convolution with the gaussian kernel for filtering
 	for i in range(0 , lx ):
 		for j in range(0 , ly ):
-			local_input = image_in[i : i + 2* lw + 1, j: j + 2* lw + 1]
+			window = image_in[i : i + 2* lw + 1, j: j + 2* lw + 1]
 			sumg = 0.0
-			# for i_local in range(local_input.shape[0]):
-			for i_local in prange(local_input.shape[0], \
+			# for i_local in range(window.shape[0]):
+			for i_local in prange(window.shape[0], \
 				nogil=True, schedule = 'static', num_threads= num_threads):
-				for j_local in range(local_input.shape[1]):
-					sumg += local_input[i_local, j_local]*kernel[i_local,j_local]
+				for j_local in range(window.shape[1]):
+					sumg += window[i_local, j_local]*kernel[i_local,j_local]
 			image_out[i, j] = sumg
 
 
@@ -368,8 +368,8 @@ class Gaussianfilter2D():
 		# convolution with the gaussian kernel for filtering
 		for i in range(0 , lx ):
 			for j in range(0 , ly ):
-				local_input = image[i : i + 2*self.lw + 1, j: j + 2*self.lw + 1]
-				self.image_[i , j]= np.sum(local_input*self._kernel)
+				window = image[i : i + 2*self.lw + 1, j: j + 2*self.lw + 1]
+				self.image_[i , j]= np.sum(window*self._kernel)
 		return self.image_
 
 	def _return_cython_convolution(self, lx, ly, image):
@@ -583,7 +583,7 @@ cdef _cython_convolution_threading(int lw,
 						unsigned int step):
 	cdef:
 		int i, j, i_local, j_local
-		np.float32_t [:,:] local_input
+		np.float32_t [:,:] window
 		float sumg
 
 	# # convolution with the gaussian kernel for filtering
@@ -591,11 +591,11 @@ cdef _cython_convolution_threading(int lw,
 		i = offset
 		while i < lx :
 			for j in range(0, ly):
-				local_input = image_in[i : i +2* lw+ 1, j: j + 2* lw + 1]
+				window = image_in[i : i +2* lw+ 1, j: j + 2* lw + 1]
 				sumg = 0.0
-				for i_local in range(local_input.shape[0]):
-					for j_local in range(local_input.shape[1]):
-						sumg += local_input[i_local, j_local]*kernel[i_local,j_local]
+				for i_local in range(window.shape[0]):
+					for j_local in range(window.shape[1]):
+						sumg += window[i_local, j_local]*kernel[i_local,j_local]
 				image_out[i, j] = sumg
 			i += step
 			
