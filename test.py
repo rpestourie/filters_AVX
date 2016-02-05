@@ -29,9 +29,9 @@ imagename = 'test.png'
 # load image (only one color now)
 f = misc.imread(imagename)
 if imagename == 'small.png':
-	f = f[:,:,0]
+    f = f[:,:,0]
 else:
-	pass
+    pass
 
 
 # --------------------------------------------
@@ -62,7 +62,7 @@ gb.filter_AVX(f)
 print 'run time AVX' , gb.run_time_
 
 filter_cython_threading(gb,f)
-print 'run time cython with multithreading' , gb.run_time_	
+print 'run time cython with multithreading' , gb.run_time_  
 
 
 
