@@ -26,8 +26,8 @@ picture = np.random.random((im_size, im_size))
 
 #preprocess image
 imsize = np.shape(picture)
-input_im = np.zeros((lw + imsize[0] + lw, lw + imsize[1] + lw + 8 - (2 * lw + 1) % 8))
-input_im[:(lw + imsize[0] + lw), :(lw + imsize[1] + lw)] = np.pad(picture, ((lw, lw), (lw, lw)), mode = 'reflect')
+input_im = np.zeros((3*im_size, 3*im_size))
+input_im[:, :] = np.pad(picture, ((im_size, im_size), (im_size, im_size)), mode = 'reflect')
 plt.imshow(input_im);
 
 from timefunction import time_update

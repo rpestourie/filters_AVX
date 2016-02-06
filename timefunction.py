@@ -29,6 +29,6 @@ def time_update(function, truncate, imsize, picture, input_im, sigma_r, sigma_s,
                                                     lw,
                                                     num_thread),
                             number=3, repeat=5)
-    print("{}: {}".format(str(function) , min(times)))
+    print("{}: {}s".format(str(function) , min(times)))
 
     return min(times)
